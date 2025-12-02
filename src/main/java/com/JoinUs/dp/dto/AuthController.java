@@ -1,13 +1,18 @@
 package com.JoinUs.dp.dto;
 
-import com.JoinUs.dp.service.AuthService;
 import com.JoinUs.dp.global.common.api.ApiPath;
-import com.JoinUs.dp.dto.Response;
+import com.JoinUs.dp.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 인증 컨트롤러
+ * POST /api/v1/auth/register
+ * POST /api/v1/auth/login
+ * POST /api/v1/auth/refresh
+ */
 @RestController
 @RequestMapping(ApiPath.AUTH_PATH)
 @RequiredArgsConstructor
@@ -15,26 +20,31 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /** 회원가입 */
     @PostMapping("/register")
-    public ResponseEntity<Response<String>> signUp(@RequestBody RegisterDto dto) {
-        authService.signUp(dto);
-        return ResponseEntity.ok(new Response<>(HttpStatus.OK, null, "회원가입 성공"));
+    public ResponseEntity<Response<Void>> register(@RequestBody RegisterDto dto) {
+        authService.register(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new Response<>(HttpStatus.CREATED, null, "회원가입이 완료되었습니다."));
     }
 
-
-    // 로그인 요청 (email, password 받아서 토큰 반환)
+    /** 로그인 */
     @PostMapping("/login")
     public ResponseEntity<Response<TokenResponse>> login(@RequestBody LoginDto dto) {
         var tokens = authService.login(dto.getEmail(), dto.getPassword());
-        return ResponseEntity.ok(new Response<>(HttpStatus.OK, new TokenResponse(tokens.getAccessToken(), tokens.getRefreshToken()), "토큰이 전달 되었습니다."));
+        TokenResponse body = new TokenResponse(tokens.getAccessToken(), tokens.getRefreshToken());
+        return ResponseEntity.ok(
+                new Response<>(HttpStatus.OK, body, "토큰이 전달되었습니다.")
+        );
     }
 
-
-
-    // 리프레시 토큰으로 Access 토큰 재발급
+    /** 리프레시 토큰으로 Access 토큰 재발급 */
     @PostMapping("/refresh")
     public ResponseEntity<Response<TokenResponse>> refreshToken(@RequestBody TokenResponse refreshRequest) {
         var tokens = authService.refreshAccessToken(refreshRequest.getRefresh_token());
-        return ResponseEntity.ok(new Response<>(HttpStatus.OK, new TokenResponse(tokens.getAccessToken(), tokens.getRefreshToken()), "리프레쉬 토큰이 재발급 되었습니다."));
+        TokenResponse body = new TokenResponse(tokens.getAccessToken(), tokens.getRefreshToken());
+        return ResponseEntity.ok(
+                new Response<>(HttpStatus.OK, body, "리프레시 토큰이 재발급되었습니다.")
+        );
     }
 }

@@ -1,46 +1,62 @@
 package com.JoinUs.dp.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.springframework.web.bind.annotation.*;
-
-import com.JoinUs.dp.dto.QuestionCreateRequest;
+import com.JoinUs.dp.common.exception.NotFoundException;
 import com.JoinUs.dp.dto.AnswerUpdateRequest;
+import com.JoinUs.dp.dto.QuestionCreateRequest;
 import com.JoinUs.dp.entity.ClubQuestion;
 import com.JoinUs.dp.entity.ClubSearch;
 import com.JoinUs.dp.repository.ClubSearchRepository;
 import com.JoinUs.dp.service.ClubQuestionService;
-
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/clubs/{clubId}/questions")
+@RequiredArgsConstructor
 public class ClubQuestionController {
 
     private final ClubQuestionService clubQuestionService;
     private final ClubSearchRepository clubSearchRepository;
 
-    /** 질문 목록 조회 */
+    /** 지원 질문 목록 조회
+     *  → 클럽이 설정한 질문 리스트 + (임시) 최대 글자 수
+     */
     @GetMapping
-    public List<ClubQuestion> getQuestions(@PathVariable Long clubId) {
+    public List<QuestionResponse> getQuestions(@PathVariable Long clubId) {
         ClubSearch club = clubSearchRepository.findById(clubId)
-                .orElseThrow(() -> new RuntimeException("동아리를 찾을 수 없습니다."));
-        return clubQuestionService.getQuestionsByClub(club);
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+
+        List<ClubQuestion> questions = clubQuestionService.getQuestionsByClub(club);
+
+        // maxLength는 아직 DB에 없어서 일단 1000자로 고정 (필요하면 엔티티/컬럼 추가해서 변경)
+        return questions.stream()
+                .map(q -> new QuestionResponse(
+                        q.getQid(),
+                        q.getQuestion(),
+                        1000
+                ))
+                .collect(Collectors.toList());
     }
 
-    /** 질문 등록 (RequestBody로 받게 수정) */
+    /** 질문 추가 (관리자/동아리장용) */
     @PostMapping
-    public ClubQuestion addQuestion(
+    public QuestionResponse addQuestion(
             @PathVariable Long clubId,
             @RequestBody QuestionCreateRequest req
     ) {
         ClubSearch club = clubSearchRepository.findById(clubId)
-                .orElseThrow(() -> new RuntimeException("동아리를 찾을 수 없습니다."));
-        return clubQuestionService.addQuestion(club, req.getQuestion());
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+
+        ClubQuestion saved = clubQuestionService.addQuestion(club, req.getQuestion());
+        return new QuestionResponse(saved.getQid(), saved.getQuestion(), 1000);
     }
 
-    /** 답변 등록/수정 (RequestBody로 받게 수정) */
+    /** 답변 등록/수정 – 지금 구조상 Q&A 성격이라 남겨둠 */
     @PutMapping("/{questionId}/answer")
     public ClubQuestion updateAnswer(
             @PathVariable Long questionId,
@@ -53,5 +69,13 @@ public class ClubQuestionController {
     @DeleteMapping("/{questionId}")
     public void softDeleteQuestion(@PathVariable Long questionId) {
         clubQuestionService.softDeleteQuestion(questionId);
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class QuestionResponse {
+        private Long id;
+        private String question;
+        private int maxLength;
     }
 }

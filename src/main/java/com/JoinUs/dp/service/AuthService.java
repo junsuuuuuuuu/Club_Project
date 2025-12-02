@@ -1,15 +1,16 @@
 package com.JoinUs.dp.service;
 
+import com.JoinUs.dp.common.exception.ConflictException;
+import com.JoinUs.dp.common.exception.UnauthorizedException;
 import com.JoinUs.dp.dto.RegisterDto;
 import com.JoinUs.dp.dto.TokenDto;
-import com.JoinUs.dp.global.utility.JwtProvider;
 import com.JoinUs.dp.entity.User;
+import com.JoinUs.dp.global.utility.JwtProvider;
 import com.JoinUs.dp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -18,35 +19,40 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
-    public void signUp(RegisterDto dto) {
-        // ✅ existsByEmail 로 변경
+    /** 회원가입 */
+    public void register(RegisterDto dto) {
+        // 이메일/아이디 중복 체크
         if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new RuntimeException("이미 존재하는 이메일입니다.");
+            throw new ConflictException("이미 사용 중인 이메일입니다.");
         }
 
+        // 유저 엔티티 생성
         User user = new User();
         user.setEmail(dto.getEmail());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setUsername(dto.getUsername());
-        user.setNickname(dto.getUsername()); // 혹은 별도로 지정
-        user.setDepartment("미정");
-        user.setStudentId("0");
-        user.setGrade(1);
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+
+        // NOT NULL 컬럼 기본값 처리
+        String nickname = dto.getNickname() != null ? dto.getNickname() : dto.getUsername();
+        String department = dto.getDepartment() != null ? dto.getDepartment() : "미정";
+        String studentId = dto.getStudentId() != null ? dto.getStudentId() : "TEMP-" + System.currentTimeMillis();
+        Integer grade = dto.getGrade() != null ? dto.getGrade() : 1;
+
+        user.setNickname(nickname);
+        user.setDepartment(department);
+        user.setStudentId(studentId);
+        user.setGrade(grade);
 
         userRepository.save(user);
     }
 
-    public TokenDto login(String email, String password) {
-        // ✅ findByEmail 로 변경
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            throw new RuntimeException("존재하지 않는 사용자입니다.");
-        }
+    /** 로그인 */
+    public TokenDto login(String email, String rawPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다."));
 
-        User user = userOpt.get();
-
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다.");
         }
 
         String accessToken = jwtProvider.generateAccessToken(email);
@@ -55,9 +61,10 @@ public class AuthService {
         return new TokenDto(accessToken, refreshToken);
     }
 
+    /** 리프레시 토큰으로 액세스 토큰 재발급 */
     public TokenDto refreshAccessToken(String refreshToken) {
         if (!jwtProvider.validateToken(refreshToken)) {
-            throw new RuntimeException("유효하지 않은 리프레시 토큰입니다.");
+            throw new UnauthorizedException("유효하지 않은 리프레시 토큰입니다.");
         }
 
         String email = jwtProvider.extractEmail(refreshToken);

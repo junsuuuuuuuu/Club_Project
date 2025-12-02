@@ -1,16 +1,31 @@
 package com.JoinUs.dp.service;
 
-import com.JoinUs.dp.dto.*;
+import com.JoinUs.dp.common.exception.BadRequestException;
+import com.JoinUs.dp.common.exception.NotFoundException;
 import com.JoinUs.dp.dto.ClubCreateRequest;
-import com.JoinUs.dp.entity.*;
-import com.JoinUs.dp.repository.*;
+import com.JoinUs.dp.dto.ClubDetailResponse;
+import com.JoinUs.dp.dto.ClubListResponse;
+import com.JoinUs.dp.dto.ClubListResponse.NoticeSummary;
+import com.JoinUs.dp.entity.Club;
+import com.JoinUs.dp.entity.ClubImage;
+import com.JoinUs.dp.entity.Notice;
+import com.JoinUs.dp.repository.ClubImageRepository;
+import com.JoinUs.dp.repository.ClubRepository;
+import com.JoinUs.dp.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,9 +34,18 @@ public class ClubService {
 
     private final ClubRepository clubRepository;
     private final ClubImageRepository imageRepository;
+    private final NoticeRepository noticeRepository;
+
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     // 1. 동아리 생성
     public Long createClub(ClubCreateRequest req) {
+
+        if (req.getName() == null || req.getShortDesc() == null ||
+                req.getType() == null || req.getLeaderId() == null) {
+            throw new BadRequestException("name, shortDesc, type, leaderId 는 필수값입니다.");
+        }
+
         Club club = new Club();
         club.setName(req.getName());
         club.setShortDesc(req.getShortDesc());
@@ -30,19 +54,28 @@ public class ClubService {
         club.setDepartment(req.getDepartment());
         club.setCategory(req.getCategory());
         club.setLeaderId(req.getLeaderId());
-        club.setRecruitStatus("closed");  // 초기값
-        clubRepository.save(club);
-        return club.getClubId();
+
+        // 기본값
+        club.setStatus("pending");
+        club.setRecruitStatus("closed");
+        club.setRecruiting(false);
+        club.setMemberCount(0);
+        club.setActivities(null);
+        club.setVision(null);
+        club.setRecruitmentNotice(null);
+
+        Club saved = clubRepository.save(club);
+        return saved.getClubId();
     }
 
-    // 2. 동아리 상세 조회
+    // 2. 단일 동아리 상세 조회
     public ClubDetailResponse getClubDetail(Long id) {
-
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
 
         var images = imageRepository.findByClub_ClubId(id)
-                .stream().map(ClubImage::getImageUrl)
+                .stream()
+                .map(ClubImage::getImageUrl)
                 .collect(Collectors.toList());
 
         return new ClubDetailResponse(
@@ -58,101 +91,229 @@ public class ClubService {
         );
     }
 
-    // 3. 전체 목록 조회
+    // 3. 전체 목록 조회 (프론트용 구조)
     public List<ClubListResponse> findAllClubs() {
         return clubRepository.findAll().stream()
-                .map(c -> new ClubListResponse(
-                        c.getClubId(),
-                        c.getName(),
-                        c.getShortDesc(),
-                        c.getType(),
-                        c.getCategory(),
-                        c.getDepartment(),
-                        c.getRecruitStatus()
-                )).collect(Collectors.toList());
+                .map(this::toListResponse)
+                .collect(Collectors.toList());
     }
 
-    // 4. 일반/전공/카테고리/전공학과 조회
+    // 4. type으로 필터
     public List<ClubListResponse> findByType(String type) {
         return clubRepository.findByType(type).stream()
-                .map(c -> new ClubListResponse(
-                        c.getClubId(), c.getName(), c.getShortDesc(),
-                        c.getType(), c.getCategory(), c.getDepartment(),
-                        c.getRecruitStatus()
-                )).collect(Collectors.toList());
+                .map(this::toListResponse)
+                .collect(Collectors.toList());
     }
 
+    // 5. 일반동아리 type + category 필터
     public List<ClubListResponse> findByTypeAndCategory(String type, String category) {
         return clubRepository.findByTypeAndCategory(type, category).stream()
-                .map(c -> new ClubListResponse(
-                        c.getClubId(), c.getName(), c.getShortDesc(),
-                        c.getType(), c.getCategory(), c.getDepartment(),
-                        c.getRecruitStatus()
-                )).collect(Collectors.toList());
+                .map(this::toListResponse)
+                .collect(Collectors.toList());
     }
 
+    // 6. 전공동아리 department 필터
     public List<ClubListResponse> findByDepartment(String department) {
         return clubRepository.findByDepartment(department).stream()
-                .map(c -> new ClubListResponse(
-                        c.getClubId(), c.getName(), c.getShortDesc(),
-                        c.getType(), c.getCategory(), c.getDepartment(),
-                        c.getRecruitStatus()
-                )).collect(Collectors.toList());
+                .map(this::toListResponse)
+                .collect(Collectors.toList());
     }
 
-    // 5. 이미지 업로드
+    // 7. 이미지 업로드
     public Long uploadClubImage(Long clubId, MultipartFile file) {
-
         Club club = clubRepository.findById(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
 
-        String url = "/images/" + file.getOriginalFilename(); // 실제 저장 로직 필요
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("업로드할 파일이 비어 있습니다.");
+        }
 
-        ClubImage image = new ClubImage();
-        image.setClub(club);
-        image.setImageUrl(url);
-        imageRepository.save(image);
+        try {
+            String uploadDir = "uploads/clubs/" + clubId;
+            Path dir = Paths.get(uploadDir);
+            Files.createDirectories(dir);
 
-        return image.getImageId();
+            String original = file.getOriginalFilename();
+            String ext = "";
+            if (original != null && original.contains(".")) {
+                ext = original.substring(original.lastIndexOf("."));
+            }
+            String fileName = UUID.randomUUID() + ext;
+
+            Path target = dir.resolve(fileName);
+            file.transferTo(target.toFile());
+
+            String url = "/static/" + uploadDir + "/" + fileName; // 실제 정적 리소스 매핑에 맞게 수정
+
+            ClubImage image = new ClubImage();
+            image.setClub(club);
+            image.setImageUrl(url);
+            imageRepository.save(image);
+
+            return image.getImageId();
+        } catch (Exception e) {
+            throw new RuntimeException("파일 업로드 중 오류가 발생했습니다.", e);
+        }
     }
 
-    // 6. 모집 상태 변경
+    // 8. 모집 상태 변경 (기존 API - 내부적으로만 사용)
     public String updateRecruitStatus(Long id, String status) {
-
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
 
-        // 모집 시작하면 start_date 자동 입력
-        if (status.equals("open")) {
+        if ("open".equals(status)) {
             club.setRecruitmentStartDate(Date.valueOf(LocalDate.now()));
+            club.setRecruiting(true);
+        } else if ("closed".equals(status)) {
+            club.setRecruiting(false);
+        } else {
+            throw new BadRequestException("status는 open 또는 closed 여야 합니다.");
         }
 
         club.setRecruitStatus(status);
         clubRepository.save(club);
-
         return "updated";
     }
 
-    // 7. 모집 마감일 설정
+    // 9. 모집 마감일 설정 (기존 API - 내부적으로만 사용)
     public String updateDeadline(Long id, String endDate) {
-
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
 
         club.setRecruitmentEndDate(Date.valueOf(endDate));
         clubRepository.save(club);
         return "deadline updated";
     }
 
-    // 8. 모집 종료
+    // 10. 모집 종료 (기존 API - 내부적으로만 사용)
     public String closeRecruit(Long id) {
-
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
 
         club.setRecruitStatus("closed");
+        club.setRecruiting(false);
         clubRepository.save(club);
 
         return "closed";
+    }
+
+    // 11. 새로운 통합 API: 모집 상태 + 마감일 동시 변경
+    public void updateRecruitment(Long clubId, Boolean isRecruiting, String recruitDeadline) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+
+        if (isRecruiting != null) {
+            if (isRecruiting) {
+                club.setRecruitStatus("open");
+                club.setRecruiting(true);
+                if (club.getRecruitmentStartDate() == null) {
+                    club.setRecruitmentStartDate(Date.valueOf(LocalDate.now()));
+                }
+            } else {
+                club.setRecruitStatus("closed");
+                club.setRecruiting(false);
+            }
+        }
+
+        if (recruitDeadline != null && !recruitDeadline.isBlank()) {
+            LocalDate end = LocalDate.parse(recruitDeadline, DATE_FMT);
+            club.setRecruitmentEndDate(Date.valueOf(end));
+        }
+
+        clubRepository.save(club);
+    }
+
+    // =================== 내부 매핑 메서드 ===================
+
+    private ClubListResponse toListResponse(Club club) {
+        // 1) id: "sg01" 같은 형식 (clubId 기반)
+        String id = "sg" + String.format("%02d", club.getClubId());
+
+        // 2) adminId: 지금은 임시로 고정 값
+        //    나중에 Users 테이블에서 leaderId 기반 username/email 가져오고 싶으면 여기서 매핑
+        String adminId = "sg_lead";
+
+        // 3) imageUrl: 대표 이미지 1개
+        List<ClubImage> images = imageRepository.findByClub_ClubId(club.getClubId());
+        String imageUrl = images.isEmpty()
+                ? "../../public/assets/smartGrid.png"
+                : images.get(0).getImageUrl();
+
+        // 4) activities: Club.activities(TEXT)를 줄바꿈 기준으로 분리
+        List<String> activities = club.getActivities() == null
+                ? Collections.emptyList()
+                : Arrays.stream(club.getActivities().split("\n"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toList());
+
+        // 5) direction: Club.vision
+        String direction = club.getVision();
+
+        // 6) tags: ["스마트그리드","에너지","로드맵"] 비슷하게 DB에서 가공
+        String mainTag = club.getName() == null
+                ? null
+                : club.getName().replace(" 연구회", "").trim(); // "스마트그리드"
+
+        boolean hasRoadmap = club.getShortDesc() != null
+                && club.getShortDesc().contains("로드맵");
+
+        String energyTag = (club.getCategory() != null
+                && club.getCategory().contains("에너지")) ? "에너지" : null;
+
+        List<String> tags = new java.util.ArrayList<>();
+        if (mainTag != null && !mainTag.isEmpty()) tags.add(mainTag);  // "스마트그리드"
+        if (energyTag != null) tags.add(energyTag);                    // "에너지"
+        if (hasRoadmap) tags.add("로드맵");                             // "로드맵"
+
+        // 7) recruitDeadline: recruitmentEndDate → yyyy-MM-dd
+        String recruitDeadline = club.getRecruitmentEndDate() == null
+                ? null
+                : club.getRecruitmentEndDate().toLocalDate().format(DATE_FMT);
+
+        // 8) isRecruiting: recruitStatus or recruiting 플래그
+        boolean isRecruiting = Boolean.TRUE.equals(club.getRecruiting())
+                || "open".equalsIgnoreCase(club.getRecruitStatus());
+
+        // 9) members: memberCount
+        Integer members = club.getMemberCount();
+
+        // 10) notices: DB Notice → 프론트 스펙으로 매핑
+        List<Notice> notices = noticeRepository.findByClubIdOrderByCreatedAtDesc(club.getClubId());
+
+        List<NoticeSummary> noticeSummaries = notices.stream()
+                .map(n -> new NoticeSummary(
+                        "sg-notice-" + n.getId(),                         // id: "sg-notice-1"
+                        n.getTitle(),
+                        n.getContent(),
+                        n.getCreatedAt().toLocalDate().format(DATE_FMT),  // "yyyy-MM-dd"
+                        n.getType() == Notice.Type.CLUB_NOTICE            // isImportant
+                ))
+                .collect(Collectors.toList());
+
+        // 최종 매핑
+        return ClubListResponse.builder()
+                .id(id)
+                .name(club.getName())
+                .type(club.getType())
+                .category(club.getCategory())
+                .department(club.getDepartment())
+                .adminId(adminId)
+
+                .shortDescription(club.getShortDesc())
+                .description(club.getDescription())
+                .imageUrl(imageUrl)
+
+                .members(members)
+                .tags(tags)
+
+                .isRecruiting(isRecruiting)
+                .recruitDeadline(recruitDeadline)
+
+                .activities(activities)
+                .direction(direction)
+
+                .notices(noticeSummaries)
+                .build();
     }
 }
