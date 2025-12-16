@@ -1,4 +1,4 @@
-package com.JoinUs.dp.service;
+﻿package com.JoinUs.dp.service;
 
 import com.JoinUs.dp.common.exception.BadRequestException;
 import com.JoinUs.dp.common.exception.NotFoundException;
@@ -41,14 +41,14 @@ public class ClubService {
     // 1. 동아리 생성
     public Long createClub(ClubCreateRequest req) {
 
-        if (req.getName() == null || req.getShortDesc() == null ||
+        if (req.getName() == null || req.getShortDescription() == null ||
                 req.getType() == null || req.getLeaderId() == null) {
-            throw new BadRequestException("name, shortDesc, type, leaderId 는 필수값입니다.");
+            throw new BadRequestException("name, shortDesc, type, leaderId 값이 필요합니다.");
         }
 
         Club club = new Club();
         club.setName(req.getName());
-        club.setShortDesc(req.getShortDesc());
+        club.setShortDesc(req.getShortDescription());
         club.setDescription(req.getDescription());
         club.setType(req.getType());
         club.setDepartment(req.getDepartment());
@@ -68,10 +68,10 @@ public class ClubService {
         return saved.getClubId();
     }
 
-    // 2. 단일 동아리 상세 조회
+    // 2. 단건 동아리 상세 조회
     public ClubDetailResponse getClubDetail(Long id) {
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         var images = imageRepository.findByClub_ClubId(id)
                 .stream()
@@ -91,38 +91,38 @@ public class ClubService {
         );
     }
 
-    // 3. 전체 목록 조회 (프론트용 구조)
+    // 3. 전체 목록 조회 (메인 리스트용)
     public List<ClubListResponse> findAllClubs() {
         return clubRepository.findAll().stream()
                 .map(this::toListResponse)
                 .collect(Collectors.toList());
     }
 
-    // 4. type으로 필터
+    // 4. type별 필터
     public List<ClubListResponse> findByType(String type) {
         return clubRepository.findByType(type).stream()
                 .map(this::toListResponse)
                 .collect(Collectors.toList());
     }
 
-    // 5. 일반동아리 type + category 필터
+    // 5. type + category 필터
     public List<ClubListResponse> findByTypeAndCategory(String type, String category) {
         return clubRepository.findByTypeAndCategory(type, category).stream()
                 .map(this::toListResponse)
                 .collect(Collectors.toList());
     }
 
-    // 6. 전공동아리 department 필터
+    // 6. department 필터
     public List<ClubListResponse> findByDepartment(String department) {
         return clubRepository.findByDepartment(department).stream()
                 .map(this::toListResponse)
                 .collect(Collectors.toList());
     }
 
-    // 7. 이미지 업로드
+    // 7. 동아리 이미지 업로드
     public Long uploadClubImage(Long clubId, MultipartFile file) {
         Club club = clubRepository.findById(clubId)
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("업로드할 파일이 비어 있습니다.");
@@ -143,7 +143,7 @@ public class ClubService {
             Path target = dir.resolve(fileName);
             file.transferTo(target.toFile());
 
-            String url = "/static/" + uploadDir + "/" + fileName; // 실제 정적 리소스 매핑에 맞게 수정
+            String url = "/static/" + uploadDir + "/" + fileName; // 정적 리소스 경로에 맞게 저장
 
             ClubImage image = new ClubImage();
             image.setClub(club);
@@ -152,14 +152,14 @@ public class ClubService {
 
             return image.getImageId();
         } catch (Exception e) {
-            throw new RuntimeException("파일 업로드 중 오류가 발생했습니다.", e);
+            throw new RuntimeException("파일 업로드 과정에서 오류가 발생했습니다.", e);
         }
     }
 
-    // 8. 모집 상태 변경 (기존 API - 내부적으로만 사용)
+    // 8. 모집 상태 변경 (기존 API - 어드민 전용)
     public String updateRecruitStatus(Long id, String status) {
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         if ("open".equals(status)) {
             club.setRecruitmentStartDate(Date.valueOf(LocalDate.now()));
@@ -167,7 +167,7 @@ public class ClubService {
         } else if ("closed".equals(status)) {
             club.setRecruiting(false);
         } else {
-            throw new BadRequestException("status는 open 또는 closed 여야 합니다.");
+            throw new BadRequestException("status는 open 또는 closed 이어야 합니다.");
         }
 
         club.setRecruitStatus(status);
@@ -175,20 +175,20 @@ public class ClubService {
         return "updated";
     }
 
-    // 9. 모집 마감일 설정 (기존 API - 내부적으로만 사용)
+    // 9. 모집 마감일 설정 (기존 API - 어드민 전용)
     public String updateDeadline(Long id, String endDate) {
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         club.setRecruitmentEndDate(Date.valueOf(endDate));
         clubRepository.save(club);
         return "deadline updated";
     }
 
-    // 10. 모집 종료 (기존 API - 내부적으로만 사용)
+    // 10. 모집 종료 (기존 API - 어드민 전용)
     public String closeRecruit(Long id) {
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         club.setRecruitStatus("closed");
         club.setRecruiting(false);
@@ -197,10 +197,10 @@ public class ClubService {
         return "closed";
     }
 
-    // 11. 새로운 통합 API: 모집 상태 + 마감일 동시 변경
+    // 11. 프론트 요청용 API: 모집 상태 + 마감일 동시 변경
     public void updateRecruitment(Long clubId, Boolean isRecruiting, String recruitDeadline) {
         Club club = clubRepository.findById(clubId)
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         if (isRecruiting != null) {
             if (isRecruiting) {
@@ -223,14 +223,14 @@ public class ClubService {
         clubRepository.save(club);
     }
 
-    // =================== 내부 매핑 메서드 ===================
+    // =================== 프론트 매핑 메서드 ===================
 
     private ClubListResponse toListResponse(Club club) {
         // 1) id: "sg01" 같은 형식 (clubId 기반)
         String id = "sg" + String.format("%02d", club.getClubId());
 
-        // 2) adminId: 지금은 임시로 고정 값
-        //    나중에 Users 테이블에서 leaderId 기반 username/email 가져오고 싶으면 여기서 매핑
+        // 2) adminId: 현재는 임시 고정 값
+        //    추후 Users 테이블에서 leaderId 기반 username/email 가져오도록 매핑
         String adminId = "sg_lead";
 
         // 3) imageUrl: 대표 이미지 1개
@@ -250,44 +250,45 @@ public class ClubService {
         // 5) direction: Club.vision
         String direction = club.getVision();
 
-        // 6) tags: ["스마트그리드","에너지","로드맵"] 비슷하게 DB에서 가공
+        // 6) tags: DB 값에서 파생
         String mainTag = club.getName() == null
                 ? null
-                : club.getName().replace(" 연구회", "").trim(); // "스마트그리드"
+                : club.getName().replace(" 해커톤,", "").trim();
 
         boolean hasRoadmap = club.getShortDesc() != null
                 && club.getShortDesc().contains("로드맵");
 
-        String energyTag = (club.getCategory() != null
-                && club.getCategory().contains("에너지")) ? "에너지" : null;
+        String energyTag = (club.getCategory() != null && club.getCategory().contains("에너지"))
+                ? "에너지"
+                : null;
 
         List<String> tags = new java.util.ArrayList<>();
-        if (mainTag != null && !mainTag.isEmpty()) tags.add(mainTag);  // "스마트그리드"
-        if (energyTag != null) tags.add(energyTag);                    // "에너지"
-        if (hasRoadmap) tags.add("로드맵");                             // "로드맵"
+        if (mainTag != null && !mainTag.isEmpty()) tags.add(mainTag);
+        if (energyTag != null) tags.add(energyTag);
+        if (hasRoadmap) tags.add("로드맵");
 
-        // 7) recruitDeadline: recruitmentEndDate → yyyy-MM-dd
+        // 7) recruitDeadline: recruitmentEndDate -> yyyy-MM-dd
         String recruitDeadline = club.getRecruitmentEndDate() == null
                 ? null
                 : club.getRecruitmentEndDate().toLocalDate().format(DATE_FMT);
 
-        // 8) isRecruiting: recruitStatus or recruiting 플래그
+        // 8) isRecruiting: recruitStatus or recruiting 둘 중 하나라도 open/true면 open
         boolean isRecruiting = Boolean.TRUE.equals(club.getRecruiting())
                 || "open".equalsIgnoreCase(club.getRecruitStatus());
 
         // 9) members: memberCount
         Integer members = club.getMemberCount();
 
-        // 10) notices: DB Notice → 프론트 스펙으로 매핑
+        // 10) notices: DB Notice 최신순으로 매핑
         List<Notice> notices = noticeRepository.findByClubIdOrderByCreatedAtDesc(club.getClubId());
 
         List<NoticeSummary> noticeSummaries = notices.stream()
                 .map(n -> new NoticeSummary(
-                        "sg-notice-" + n.getId(),                         // id: "sg-notice-1"
+                        "sg-notice-" + n.getId(),
                         n.getTitle(),
                         n.getContent(),
-                        n.getCreatedAt().toLocalDate().format(DATE_FMT),  // "yyyy-MM-dd"
-                        n.getType() == Notice.Type.CLUB_NOTICE            // isImportant
+                        n.getCreatedAt().toLocalDate().format(DATE_FMT),
+                        n.getType() == Notice.Type.CLUB_NOTICE
                 ))
                 .collect(Collectors.toList());
 
