@@ -1,4 +1,4 @@
-﻿package com.JoinUs.dp.service;
+package com.JoinUs.dp.service;
 
 import com.JoinUs.dp.common.exception.BadRequestException;
 import com.JoinUs.dp.common.exception.NotFoundException;
@@ -63,6 +63,42 @@ public class ClubService {
         club.setActivities(null);
         club.setVision(null);
         club.setRecruitmentNotice(null);
+
+        // 추가 입력값 매핑
+        Boolean isRecruiting = req.getIsRecruiting();
+        if (isRecruiting != null) {
+            if (isRecruiting) {
+                club.setRecruitStatus("open");
+                club.setRecruiting(true);
+                if (club.getRecruitmentStartDate() == null) {
+                    club.setRecruitmentStartDate(Date.valueOf(LocalDate.now()));
+                }
+            } else {
+                club.setRecruitStatus("closed");
+                club.setRecruiting(false);
+            }
+        }
+
+        if (req.getRecruitDeadline() != null && !req.getRecruitDeadline().isBlank()) {
+            LocalDate end = LocalDate.parse(req.getRecruitDeadline(), DATE_FMT);
+            club.setRecruitmentEndDate(Date.valueOf(end));
+        }
+
+        if (req.getMembers() != null) {
+            club.setMemberCount(req.getMembers());
+        }
+
+        if (req.getActivities() != null && !req.getActivities().isEmpty()) {
+            String activities = String.join("\n", req.getActivities().stream()
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList()));
+            club.setActivities(activities.isEmpty() ? null : activities);
+        }
+
+        if (req.getDirection() != null && !req.getDirection().isBlank()) {
+            club.setVision(req.getDirection());
+        }
 
         Club saved = clubRepository.save(club);
         return saved.getClubId();
