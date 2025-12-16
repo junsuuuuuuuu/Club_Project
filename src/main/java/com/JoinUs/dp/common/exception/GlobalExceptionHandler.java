@@ -3,9 +3,11 @@ package com.JoinUs.dp.common.exception;
 import com.JoinUs.dp.common.response.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -41,6 +43,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Response<Void>> handleConflict(ConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new Response<>(409, null, ex.getMessage()));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Response<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(new Response<>(405, null, "지원하지 않는 HTTP 메서드입니다."));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Response<Void>> handleNoResource(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new Response<>(404, null, "요청한 리소스를 찾을 수 없습니다."));
     }
 
     @ExceptionHandler(Exception.class)

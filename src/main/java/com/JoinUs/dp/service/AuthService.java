@@ -21,21 +21,25 @@ public class AuthService {
 
     /** 회원가입 */
     public void register(RegisterDto dto) {
-        // 이메일/아이디 중복 체크
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new ConflictException("이미 사용 중인 이메일입니다.");
         }
+        if (userRepository.existsByUsername(dto.getUsername())) {
+            throw new ConflictException("이미 사용 중인 사용자명입니다.");
+        }
 
-        // 유저 엔티티 생성
+        String studentId = dto.getStudentId() != null ? dto.getStudentId() : "TEMP-" + System.currentTimeMillis();
+        if (userRepository.existsByStudentId(studentId)) {
+            throw new ConflictException("이미 사용 중인 학번입니다.");
+        }
+
         User user = new User();
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        // NOT NULL 컬럼 기본값 처리
         String nickname = dto.getNickname() != null ? dto.getNickname() : dto.getUsername();
         String department = dto.getDepartment() != null ? dto.getDepartment() : "미정";
-        String studentId = dto.getStudentId() != null ? dto.getStudentId() : "TEMP-" + System.currentTimeMillis();
         Integer grade = dto.getGrade() != null ? dto.getGrade() : 1;
 
         user.setNickname(nickname);
@@ -49,10 +53,10 @@ public class AuthService {
     /** 로그인 */
     public TokenDto login(String email, String rawPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다."));
+                .orElseThrow(() -> new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다.");
+            throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
         String accessToken = jwtProvider.generateAccessToken(email);
