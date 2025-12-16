@@ -9,7 +9,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ClubDetailResponse {
 
-    private Long clubId;
+    private String clubId;
     private String name;
     private String shortDesc;
     private String description;
