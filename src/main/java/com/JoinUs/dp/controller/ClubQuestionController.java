@@ -27,8 +27,8 @@ public class ClubQuestionController {
      *  → 클럽이 설정한 질문 리스트 + (임시) 최대 글자 수
      */
     @GetMapping
-    public List<QuestionResponse> getQuestions(@PathVariable Long clubId) {
-        ClubSearch club = clubSearchRepository.findById(clubId)
+    public List<QuestionResponse> getQuestions(@PathVariable String clubId) {
+        ClubSearch club = clubSearchRepository.findById(parseClubId(clubId))
                 .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
 
         List<ClubQuestion> questions = clubQuestionService.getQuestionsByClub(club);
@@ -46,10 +46,10 @@ public class ClubQuestionController {
     /** 질문 추가 (관리자/동아리장용) */
     @PostMapping
     public QuestionResponse addQuestion(
-            @PathVariable Long clubId,
+            @PathVariable String clubId,
             @RequestBody QuestionCreateRequest req
     ) {
-        ClubSearch club = clubSearchRepository.findById(clubId)
+        ClubSearch club = clubSearchRepository.findById(parseClubId(clubId))
                 .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
 
         ClubQuestion saved = clubQuestionService.addQuestion(club, req.getQuestion());
@@ -77,5 +77,18 @@ public class ClubQuestionController {
         private Long id;
         private String question;
         private int maxLength;
+    }
+
+    private Long parseClubId(String clubId) {
+        if (clubId == null) throw new NotFoundException("clubId는 필수입니다.");
+        String trimmed = clubId.trim();
+        if (trimmed.toLowerCase().startsWith("sg")) {
+            trimmed = trimmed.substring(2);
+        }
+        try {
+            return Long.parseLong(trimmed);
+        } catch (NumberFormatException e) {
+            throw new NotFoundException("clubId 형식이 올바르지 않습니다.");
+        }
     }
 }

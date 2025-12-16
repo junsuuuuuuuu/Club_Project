@@ -14,6 +14,7 @@ public class ClubQuestion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @jakarta.persistence.Column(name = "id")
     private Long qid;  // id → qid
 
     @ManyToOne
@@ -57,4 +58,3 @@ public class ClubQuestion {
         this.active = active;
     }
 }
-
