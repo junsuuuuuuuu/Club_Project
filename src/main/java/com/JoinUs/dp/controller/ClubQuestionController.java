@@ -43,6 +43,21 @@ public class ClubQuestionController {
                 .collect(Collectors.toList());
     }
 
+    /** 질문 + 답변 목록 조회 (새 엔드포인트) */
+    @GetMapping("/answers")
+    public List<AnsweredQuestionResponse> getQuestionsWithAnswers(@PathVariable String clubId) {
+        ClubSearch club = clubSearchRepository.findById(parseClubId(clubId))
+                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+
+        return clubQuestionService.getQuestionsByClub(club).stream()
+                .map(q -> new AnsweredQuestionResponse(
+                        q.getQid(),
+                        q.getQuestion(),
+                        q.getAnswer()
+                ))
+                .collect(Collectors.toList());
+    }
+
     /** 질문 추가 (관리자/동아리장용) */
     @PostMapping
     public QuestionResponse addQuestion(
@@ -77,6 +92,14 @@ public class ClubQuestionController {
         private Long id;
         private String question;
         private int maxLength;
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class AnsweredQuestionResponse {
+        private Long id;
+        private String question;
+        private String answer;
     }
 
     private Long parseClubId(String clubId) {
