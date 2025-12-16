@@ -13,7 +13,7 @@ public class InterviewResponse {
 
     private Long interviewId;
     private Long applicationId;
-    private Long clubId;
+    private String clubId;
     private Long userId;
 
     private LocalDateTime schedule;
@@ -28,7 +28,7 @@ public class InterviewResponse {
         return new InterviewResponse(
                 i.getId(),
                 i.getApplicationId(),
-                i.getClubId(),
+                String.valueOf(i.getClubId()),
                 i.getUserId(),
                 i.getSchedule(),
                 i.getLocation(),

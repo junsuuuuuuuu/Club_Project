@@ -20,7 +20,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
 
     /** 회원가입 */
-    public void register(RegisterDto dto) {
+    public Long register(RegisterDto dto) {
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new ConflictException("이미 사용 중인 이메일입니다.");
         }
@@ -47,7 +47,8 @@ public class AuthService {
         user.setStudentId(studentId);
         user.setGrade(grade);
 
-        userRepository.save(user);
+        User saved = userRepository.save(user);
+        return saved.getId();
     }
 
     /** 로그인 */
@@ -62,7 +63,7 @@ public class AuthService {
         String accessToken = jwtProvider.generateAccessToken(email);
         String refreshToken = jwtProvider.generateRefreshToken(email);
 
-        return new TokenDto(accessToken, refreshToken);
+        return new TokenDto(user.getId(), accessToken, refreshToken);
     }
 
     /** 리프레시 토큰으로 액세스 토큰 재발급 */
@@ -72,10 +73,12 @@ public class AuthService {
         }
 
         String email = jwtProvider.extractEmail(refreshToken);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("해당 사용자 정보를 찾을 수 없습니다."));
 
         String newAccessToken = jwtProvider.generateAccessToken(email);
         String newRefreshToken = jwtProvider.generateRefreshToken(email);
 
-        return new TokenDto(newAccessToken, newRefreshToken);
+        return new TokenDto(user.getId(), newAccessToken, newRefreshToken);
     }
 }

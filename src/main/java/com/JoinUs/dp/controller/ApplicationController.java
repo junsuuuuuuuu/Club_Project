@@ -37,7 +37,7 @@ public class ApplicationController {
     @GetMapping(ApiPath.APPLICATIONS)
     public ResponseEntity<Response<List<ApplicationDto>>> findAll(
             @RequestParam(required = false) Long userId,
-            @RequestParam(required = false) Long clubId
+            @RequestParam(required = false) String clubId
     ) {
         List<ApplicationDto> list;
         if (userId != null) {
@@ -83,7 +83,7 @@ public class ApplicationController {
 
     /** 클럽별 신청 목록 (별도 path 사용) */
     @GetMapping(ApiPath.CLUB_APPLICATIONS)
-    public ResponseEntity<Response<List<ApplicationDto>>> findByClubId(@PathVariable Long clubId) {
+    public ResponseEntity<Response<List<ApplicationDto>>> findByClubId(@PathVariable String clubId) {
         List<ApplicationDto> list = service.findByClubId(clubId);
         return ResponseEntity.ok(new Response<>(200, list, "클럽별 신청자 목록 조회 성공"));
     }

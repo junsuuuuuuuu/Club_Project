@@ -115,7 +115,7 @@ public class ClubService {
                 .collect(Collectors.toList());
 
         return new ClubDetailResponse(
-                club.getClubId(),
+                String.valueOf(club.getClubId()),
                 club.getName(),
                 club.getShortDesc(),
                 club.getDescription(),

@@ -96,8 +96,9 @@ public class ApplicationService {
 
     /* 8. 클럽별 신청 목록 조회 */
     @Transactional(readOnly = true)
-    public List<ApplicationDto> findByClubId(Long clubId) {
-        return repository.findByClubId(clubId).stream()
+    public List<ApplicationDto> findByClubId(String clubId) {
+        Long id = parseClubId(clubId);
+        return repository.findByClubId(id).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -152,7 +153,7 @@ public class ApplicationService {
         // departmentId를 그대로 department로 사용
         List<Club> clubs = clubRepository.findByDepartment(departmentId);
         return clubs.stream()
-                .map(c -> new ClubSummary(c.getClubId(), c.getName()))
+                .map(c -> new ClubSummary(String.valueOf(c.getClubId()), c.getName()))
                 .collect(Collectors.toList());
     }
 
@@ -166,9 +167,20 @@ public class ApplicationService {
         Application e = new Application();
         e.setId(dto.getApplicationId());
         e.setUserId(dto.getUserId());
-        e.setClubId(dto.getClubId());
+        e.setClubId(parseClubId(dto.getClubId()));
         e.setStatus(dto.getStatus());
         e.setMessage(dto.getMessage());
         return e;
+    }
+
+    private Long parseClubId(String clubId) {
+        if (clubId == null) {
+            throw new BadRequestException("clubId는 필수입니다.");
+        }
+        try {
+            return Long.parseLong(clubId);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("clubId 형식이 올바르지 않습니다.");
+        }
     }
 }

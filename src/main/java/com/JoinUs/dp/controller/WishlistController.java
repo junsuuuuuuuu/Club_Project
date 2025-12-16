@@ -23,7 +23,7 @@ public class WishlistController {
     @PostMapping(ApiPath.WISHLIST)
     public ResponseEntity<Response<WishlistResponse>> addWishlist(
             @RequestParam Long userId,
-            @RequestParam Long clubId
+            @RequestParam String clubId
     ) {
         WishlistResponse data = wishlistService.addWishlist(userId, clubId);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -34,7 +34,7 @@ public class WishlistController {
     @DeleteMapping(ApiPath.WISHLIST + "/{clubId}")
     public ResponseEntity<Response<Void>> deleteWishlist(
             @RequestParam Long userId,
-            @PathVariable Long clubId
+            @PathVariable String clubId
     ) {
         wishlistService.deleteWishlist(userId, clubId);
         return ResponseEntity.ok(new Response<>(200, null, "찜 삭제 완료"));

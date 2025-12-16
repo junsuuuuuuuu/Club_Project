@@ -14,7 +14,7 @@ public class ApplicationDto {
 
     private Long applicationId;
     private Long userId;
-    private Long clubId;
+    private String clubId;
     private ClubStatus status;
     private String message;
     private LocalDateTime createdAt;
@@ -23,7 +23,7 @@ public class ApplicationDto {
         return new ApplicationDto(
                 e.getId(),
                 e.getUserId(),
-                e.getClubId(),
+                String.valueOf(e.getClubId()),
                 e.getStatus(),
                 e.getMessage(),
                 e.getCreatedAt()

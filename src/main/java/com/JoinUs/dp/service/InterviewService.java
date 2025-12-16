@@ -20,7 +20,7 @@ public class InterviewService {
     public InterviewResponse create(InterviewRequest req) {
         Interview i = new Interview();
         i.setApplicationId(req.getApplicationId());
-        i.setClubId(req.getClubId());
+        i.setClubId(parseClubId(req.getClubId()));
         i.setUserId(req.getUserId());
         i.setSchedule(req.getSchedule());
         i.setLocation(req.getLocation());
@@ -76,5 +76,16 @@ public class InterviewService {
         interviewRepository.save(i);
 
         return InterviewResponse.from(i);
+    }
+
+    private Long parseClubId(String clubId) {
+        if (clubId == null) {
+            throw new RuntimeException("clubId is required");
+        }
+        try {
+            return Long.parseLong(clubId);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("clubId must be numeric");
+        }
     }
 }

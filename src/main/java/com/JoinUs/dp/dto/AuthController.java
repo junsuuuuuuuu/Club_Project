@@ -22,17 +22,17 @@ public class AuthController {
 
     /** 회원가입 */
     @PostMapping("/register")
-    public ResponseEntity<Response<Void>> register(@RequestBody RegisterDto dto) {
-        authService.register(dto);
+    public ResponseEntity<Response<Long>> register(@RequestBody RegisterDto dto) {
+        Long userId = authService.register(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new Response<>(HttpStatus.CREATED, null, "회원가입이 완료되었습니다."));
+                .body(new Response<>(HttpStatus.CREATED, userId, "회원가입이 완료되었습니다."));
     }
 
     /** 로그인 */
     @PostMapping("/login")
     public ResponseEntity<Response<TokenResponse>> login(@RequestBody LoginDto dto) {
         var tokens = authService.login(dto.getEmail(), dto.getPassword());
-        TokenResponse body = new TokenResponse(tokens.getAccessToken(), tokens.getRefreshToken());
+        TokenResponse body = new TokenResponse(tokens.getUserId(), tokens.getAccessToken(), tokens.getRefreshToken());
         return ResponseEntity.ok(
                 new Response<>(HttpStatus.OK, body, "토큰이 전달되었습니다.")
         );
@@ -42,7 +42,7 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<Response<TokenResponse>> refreshToken(@RequestBody TokenResponse refreshRequest) {
         var tokens = authService.refreshAccessToken(refreshRequest.getRefresh_token());
-        TokenResponse body = new TokenResponse(tokens.getAccessToken(), tokens.getRefreshToken());
+        TokenResponse body = new TokenResponse(tokens.getUserId(), tokens.getAccessToken(), tokens.getRefreshToken());
         return ResponseEntity.ok(
                 new Response<>(HttpStatus.OK, body, "리프레시 토큰이 재발급되었습니다.")
         );

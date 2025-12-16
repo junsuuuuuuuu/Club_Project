@@ -12,7 +12,7 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
 
 jwt:
-  secret: "abc123123abc123"
+  secret: "dev-default-secret-change-me-32bytes-min"
 
 # ================================
 # 🧩 DEV (로컬 MySQL)
@@ -30,7 +30,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 jwt:
-  secret: "local-dev-key"
+  secret: "local-dev-secret-please-change-32bytes"
 
 # ================================
 # 🧩 TEST (H2)
@@ -53,7 +53,7 @@ spring:
       path: /h2-console
 
 jwt:
-  secret: "test-secret-key-123456"
+  secret: "test-env-secret-please-change-32bytes"
 
 # ================================
 # 🧩 PROD (Render + PostgreSQL)

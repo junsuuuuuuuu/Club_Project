@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class ApplicationResponse {
 
     private Long applicationId;
-    private Long clubId;
+    private String clubId;
     private String clubName;
     private ClubStatus status;       // 단일 상태
     private String message;          // 심사/확정 메시지

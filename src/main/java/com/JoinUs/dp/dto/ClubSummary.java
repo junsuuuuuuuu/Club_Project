@@ -3,16 +3,16 @@
 package com.JoinUs.dp.dto;
 
 public class ClubSummary {
-    private Long clubId;
+    private String clubId;
     private String clubName;
 
     public ClubSummary() {}
-    public ClubSummary(Long clubId, String clubName) {
+    public ClubSummary(String clubId, String clubName) {
         this.clubId = clubId;
         this.clubName = clubName;
     }
-    public Long getClubId() { return clubId; }
+    public String getClubId() { return clubId; }
     public String getClubName() { return clubName; }
-    public void setClubId(Long clubId) { this.clubId = clubId; }
+    public void setClubId(String clubId) { this.clubId = clubId; }
     public void setClubName(String clubName) { this.clubName = clubName; }
 }

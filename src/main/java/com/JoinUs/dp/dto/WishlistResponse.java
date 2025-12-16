@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class WishlistResponse {
 
-    private Long clubId;
+    private String clubId;
     private String clubName;
     private String type;        // general / major
     private String category;    // 일반동아리 카테고리

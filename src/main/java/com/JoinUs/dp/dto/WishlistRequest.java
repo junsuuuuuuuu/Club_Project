@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class WishlistRequest {
     @NotNull(message = "클럽 ID는 필수입니다.")
-    private Long clubId;
+    private String clubId;
 }

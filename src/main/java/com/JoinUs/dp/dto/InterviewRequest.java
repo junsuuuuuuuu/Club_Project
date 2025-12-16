@@ -9,7 +9,7 @@ import lombok.Setter;
 public class InterviewRequest {
 
     private Long applicationId;
-    private Long clubId;
+    private String clubId;
     private Long userId;
 
     private LocalDateTime schedule;

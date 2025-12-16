@@ -9,7 +9,7 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 public class MyApplicationResponse {
     private Long applicationId;
-    private Long clubId;
+    private String clubId;
     private String clubName;
     private String result;
     private String confirmStatus;
