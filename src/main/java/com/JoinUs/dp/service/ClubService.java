@@ -22,10 +22,7 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -133,30 +130,26 @@ public class ClubService {
 
     // 3. 전체 목록 조회 (메인 리스트용)
     public List<ClubListResponse> findAllClubs() {
-        return clubRepository.findAll().stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findAll();
+        return processClubList(clubs);
     }
 
     // 4. type별 필터
     public List<ClubListResponse> findByType(String type) {
-        return clubRepository.findByType(type).stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findByType(type);
+        return processClubList(clubs);
     }
 
     // 5. type + category 필터
     public List<ClubListResponse> findByTypeAndCategory(String type, String category) {
-        return clubRepository.findByTypeAndCategory(type, category).stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findByTypeAndCategory(type, category);
+        return processClubList(clubs);
     }
 
     // 6. department 필터
     public List<ClubListResponse> findByDepartment(String department) {
-        return clubRepository.findByDepartment(department).stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findByDepartment(department);
+        return processClubList(clubs);
     }
 
     // 7. 동아리 이미지 업로드
@@ -265,65 +258,60 @@ public class ClubService {
 
     // =================== 프론트 매핑 메서드 ===================
 
-    private ClubListResponse toListResponse(Club club) {
-        // 1) id: "sg01" 같은 형식 (clubId 기반)
-        String rawClubId = club.getClubId();
-        String id = (rawClubId != null && rawClubId.matches("\\d+"))
-                ? "sg" + String.format("%02d", Long.parseLong(rawClubId))
-                : rawClubId;
+    private List<ClubListResponse> processClubList(List<Club> clubs) {
+        if (clubs.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        // 2) adminId: 현재는 임시 고정 값
-        //    추후 Users 테이블에서 leaderId 기반 username/email 가져오도록 매핑
-        String adminId = "sg_lead";
+        List<String> clubIds = clubs.stream().map(Club::getClubId).collect(Collectors.toList());
 
-        // 3) imageUrl: 대표 이미지 1개
-        List<ClubImage> images = imageRepository.findByClub_ClubId(club.getClubId());
+        // 이미지 목록 한번에 조회
+        Map<String, List<ClubImage>> imagesByClubId = imageRepository.findByClub_ClubIdIn(clubIds).stream()
+                .collect(Collectors.groupingBy(image -> image.getClub().getClubId()));
+
+        // 공지 목록 한번에 조회
+        Map<String, List<Notice>> noticesByClubId = noticeRepository.findByClubIdInOrderByCreatedAtDesc(clubIds).stream()
+                .collect(Collectors.groupingBy(Notice::getClubId));
+
+        // 최종 데이터 조립
+        return clubs.stream().map(club -> {
+            List<ClubImage> clubImages = imagesByClubId.getOrDefault(club.getClubId(), Collections.emptyList());
+            List<Notice> clubNotices = noticesByClubId.getOrDefault(club.getClubId(), Collections.emptyList());
+            return buildClubListResponse(club, clubImages, clubNotices);
+        }).collect(Collectors.toList());
+    }
+
+    // Club -> ClubListResponse 변환 로직 (중복 제거)
+    private ClubListResponse buildClubListResponse(Club club, List<ClubImage> images, List<Notice> notices) {
         String imageUrl = images.isEmpty()
                 ? "../../public/assets/smartGrid.png"
                 : images.get(0).getImageUrl();
 
-        // 4) activities: Club.activities(TEXT)를 줄바꿈 기준으로 분리
         List<String> activities = club.getActivities() == null
                 ? Collections.emptyList()
                 : Arrays.stream(club.getActivities().split("\n"))
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .collect(Collectors.toList());
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
 
-        // 5) direction: Club.vision
-        String direction = club.getVision();
-
-        // 6) tags: DB 값에서 파생
         String mainTag = club.getName() == null
                 ? null
                 : club.getName().replace(" 해커톤,", "").trim();
-
-        boolean hasRoadmap = club.getShortDesc() != null
-                && club.getShortDesc().contains("로드맵");
-
+        boolean hasRoadmap = club.getShortDesc() != null && club.getShortDesc().contains("로드맵");
         String energyTag = (club.getCategory() != null && club.getCategory().contains("에너지"))
                 ? "에너지"
                 : null;
-
         List<String> tags = new java.util.ArrayList<>();
         if (mainTag != null && !mainTag.isEmpty()) tags.add(mainTag);
         if (energyTag != null) tags.add(energyTag);
         if (hasRoadmap) tags.add("로드맵");
 
-        // 7) recruitDeadline: recruitmentEndDate -> yyyy-MM-dd
         String recruitDeadline = club.getRecruitmentEndDate() == null
                 ? null
                 : club.getRecruitmentEndDate().toLocalDate().format(DATE_FMT);
 
-        // 8) isRecruiting: recruitStatus or recruiting 둘 중 하나라도 open/true면 open
         boolean isRecruiting = Boolean.TRUE.equals(club.getRecruiting())
                 || "open".equalsIgnoreCase(club.getRecruitStatus());
-
-        // 9) members: memberCount
-        Integer members = club.getMemberCount();
-
-        // 10) notices: DB Notice 최신순으로 매핑
-        List<Notice> notices = noticeRepository.findByClubIdOrderByCreatedAtDesc(club.getClubId());
 
         List<NoticeSummary> noticeSummaries = notices.stream()
                 .map(n -> new NoticeSummary(
@@ -335,29 +323,29 @@ public class ClubService {
                 ))
                 .collect(Collectors.toList());
 
-        // 최종 매핑
+        String rawClubId = club.getClubId();
+        String id = (rawClubId != null && rawClubId.matches("\\d+"))
+                ? "sg" + String.format("%02d", Long.parseLong(rawClubId))
+                : rawClubId;
+
         return ClubListResponse.builder()
                 .id(id)
                 .name(club.getName())
                 .type(club.getType())
                 .category(club.getCategory())
                 .department(club.getDepartment())
-                .adminId(adminId)
-
+                .adminId("sg_lead") // 임시값
                 .shortDescription(club.getShortDesc())
                 .description(club.getDescription())
                 .imageUrl(imageUrl)
-
-                .members(members)
+                .members(club.getMemberCount())
                 .tags(tags)
-
                 .isRecruiting(isRecruiting)
                 .recruitDeadline(recruitDeadline)
-
                 .activities(activities)
-                .direction(direction)
-
+                .direction(club.getVision())
                 .notices(noticeSummaries)
                 .build();
     }
 }
+

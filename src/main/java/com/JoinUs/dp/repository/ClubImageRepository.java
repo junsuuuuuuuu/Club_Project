@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ClubImageRepository extends JpaRepository<ClubImage, Long> {
     List<ClubImage> findByClub_ClubId(String clubId);
+    List<ClubImage> findByClub_ClubIdIn(List<String> clubIds);
 }
