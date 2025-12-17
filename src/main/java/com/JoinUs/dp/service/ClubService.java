@@ -23,10 +23,7 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -133,37 +130,32 @@ public class ClubService {
 
     // 3. Club list
     public List<ClubListResponse> findAllClubs() {
-        return clubRepository.findAll().stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findAll();
+        return processClubList(clubs);
     }
 
     // 4. filter by type
     public List<ClubListResponse> findByType(String type) {
-        return clubRepository.findByType(type).stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findByType(type);
+        return processClubList(clubs);
     }
 
     // 4-1. filter by category only
     public List<ClubListResponse> findByCategory(String category) {
-        return clubRepository.findByCategory(category).stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findByCategory(category);
+        return processClubList(clubs);
     }
 
     // 5. filter by type + category
     public List<ClubListResponse> findByTypeAndCategory(String type, String category) {
-        return clubRepository.findByTypeAndCategory(type, category).stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findByTypeAndCategory(type, category);
+        return processClubList(clubs);
     }
 
     // 6. filter by department
     public List<ClubListResponse> findByDepartment(String department) {
-        return clubRepository.findByDepartment(department).stream()
-                .map(this::toListResponse)
-                .collect(Collectors.toList());
+        List<Club> clubs = clubRepository.findByDepartment(department);
+        return processClubList(clubs);
     }
 
     // 7. upload club image (file upload)
@@ -297,12 +289,33 @@ public class ClubService {
 
     // =================== mappers ===================
 
-    private ClubListResponse toListResponse(Club club) {
-        String id = formatClubId(club.getClubId());
+    private List<ClubListResponse> processClubList(List<Club> clubs) {
+        if (clubs.isEmpty()) {
+            return Collections.emptyList();
+        }
 
+        List<String> clubIds = clubs.stream().map(Club::getClubId).collect(Collectors.toList());
+
+        // 이미지 목록 한번에 조회 (N+1 해결)
+        Map<String, List<ClubImage>> imagesByClubId = imageRepository.findByClub_ClubIdIn(clubIds).stream()
+                .collect(Collectors.groupingBy(image -> image.getClub().getClubId()));
+
+        // 공지 목록 한번에 조회 (N+1 해결)
+        Map<String, List<Notice>> noticesByClubId = noticeRepository.findByClubIdInOrderByCreatedAtDesc(clubIds).stream()
+                .collect(Collectors.groupingBy(Notice::getClubId));
+
+        // 최종 데이터 조립
+        return clubs.stream().map(club -> {
+            List<ClubImage> clubImages = imagesByClubId.getOrDefault(club.getClubId(), Collections.emptyList());
+            List<Notice> clubNotices = noticesByClubId.getOrDefault(club.getClubId(), Collections.emptyList());
+            return buildClubListResponse(club, clubImages, clubNotices);
+        }).collect(Collectors.toList());
+    }
+
+    private ClubListResponse buildClubListResponse(Club club, List<ClubImage> images, List<Notice> notices) {
+        String id = formatClubId(club.getClubId());
         String adminId = "sg_lead";
 
-        List<ClubImage> images = imageRepository.findByClub_ClubId(club.getClubId());
         String imageUrl = images.isEmpty()
                 ? "../../public/assets/smartGrid.png"
                 : images.get(0).getImageUrl();
@@ -314,20 +327,15 @@ public class ClubService {
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
 
-        String direction = club.getVision();
+        String mainTag = club.getName() == null ? null : club.getName().trim();
+        boolean hasRoadmap = club.getShortDesc() != null && 
+                (club.getShortDesc().contains("로드맵") || club.getShortDesc().toLowerCase().contains("roadmap"));
+        
+        String energyTag = (club.getCategory() != null && 
+                (club.getCategory().contains("에너지") || club.getCategory().toLowerCase().contains("energy")))
+                ? "energy" : null;
 
-        String mainTag = club.getName() == null
-                ? null
-                : club.getName().trim();
-
-        boolean hasRoadmap = club.getShortDesc() != null
-                && club.getShortDesc().toLowerCase().contains("roadmap");
-
-        String energyTag = (club.getCategory() != null && club.getCategory().toLowerCase().contains("energy"))
-                ? "energy"
-                : null;
-
-        List<String> tags = new java.util.ArrayList<>();
+        List<String> tags = new ArrayList<>();
         if (mainTag != null && !mainTag.isEmpty()) tags.add(mainTag);
         if (energyTag != null) tags.add(energyTag);
         if (hasRoadmap) tags.add("roadmap");
@@ -338,10 +346,6 @@ public class ClubService {
 
         boolean isRecruiting = Boolean.TRUE.equals(club.getRecruiting())
                 || "open".equalsIgnoreCase(club.getRecruitStatus());
-
-        Integer members = club.getMemberCount();
-
-        List<Notice> notices = noticeRepository.findByClubIdOrderByCreatedAtDesc(club.getClubId());
 
         List<NoticeSummary> noticeSummaries = notices.stream()
                 .map(n -> new NoticeSummary(
@@ -363,12 +367,12 @@ public class ClubService {
                 .shortDescription(club.getShortDesc())
                 .description(club.getDescription())
                 .imageUrl(imageUrl)
-                .members(members)
+                .members(club.getMemberCount())
                 .tags(tags)
                 .isRecruiting(isRecruiting)
                 .recruitDeadline(recruitDeadline)
                 .activities(activities)
-                .direction(direction)
+                .direction(club.getVision())
                 .notices(noticeSummaries)
                 .build();
     }

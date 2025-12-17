@@ -15,6 +15,6 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
     // 동아리 공지 목록 조회
     List<Notice> findByClubIdOrderByCreatedAtDesc(String clubId);
 
-    // 여러 동아리 공지 한 번에 조회
+    // 여러 클럽 공지 동시 조회 (N+1 해결용)
     List<Notice> findByClubIdInOrderByCreatedAtDesc(Collection<String> clubIds);
 }
