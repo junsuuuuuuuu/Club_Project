@@ -12,6 +12,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByUserId(Long userId);
 
     List<Application> findByClubId(String clubId);
-//    List<Club> findByDepartment(String department);
+
+    boolean existsByUserIdAndClubId(Long userId, String clubId);
 
 }

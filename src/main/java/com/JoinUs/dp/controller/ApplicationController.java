@@ -31,9 +31,9 @@ public class ApplicationController {
 
     /**
      * 신청 목록 조회
-     * - /api/v1/applications?userId=1  → 해당 유저 신청 목록
-     * - /api/v1/applications?clubId=2  → 해당 클럽 신청 목록
-     * - 둘 다 없으면 전체 목록 (관리자용)
+     * - /api/v1/applications?userId=1  해당 user 신청 목록 (관리자만)
+     * - /api/v1/applications?clubId=2  해당 클럽 신청 목록
+     * - 파라미터 없으면: 관리자 전체, 일반사용자 본인 것만
      */
     @GetMapping(ApiPath.APPLICATIONS)
     public ResponseEntity<Response<List<ApplicationDto>>> findAll(
@@ -51,32 +51,32 @@ public class ApplicationController {
         return ResponseEntity.ok(new Response<>(200, list, "신청 목록 조회 성공"));
     }
 
-    /** 단건 조회 */
+    /** 단건 조회 (소유자/관리자) */
     @GetMapping(ApiPath.APPLICATIONS + "/{applicationId}")
     public ResponseEntity<Response<ApplicationDto>> findById(@PathVariable Long applicationId) {
         ApplicationDto dto = service.findById(applicationId);
         return ResponseEntity.ok(new Response<>(200, dto, "신청 상세 조회 성공"));
     }
 
-    /** 신청 취소 */
+    /** 신청 취소 (소유자/관리자) */
     @DeleteMapping(ApiPath.APPLICATIONS + "/{applicationId}")
     public ResponseEntity<Response<Void>> cancel(@PathVariable Long applicationId) {
         service.cancel(applicationId);
         return ResponseEntity.ok(new Response<>(200, null, "신청 취소 완료"));
     }
 
-    /** 전체 수정 */
+    /** 전체 수정 (메시지, 소유자/관리자) */
     @PutMapping(ApiPath.APPLICATIONS)
     public ResponseEntity<Response<ApplicationDto>> update(@RequestBody ApplicationDto req) {
         ApplicationDto updated = service.update(req);
         return ResponseEntity.ok(new Response<>(200, updated, "신청 수정 완료"));
     }
 
-    /** 부분 수정 */
+    /** 부분수정 (메시지, 소유자/관리자) */
     @PatchMapping(ApiPath.APPLICATIONS + "/{applicationId}")
     public ResponseEntity<Response<ApplicationDto>> partialUpdate(
             @PathVariable Long applicationId,
-            @RequestBody com.JoinUs.dp.dto.ApplicationPartialUpdateRequest updates) {
+            @RequestBody ApplicationPartialUpdateRequest updates) {
 
         ApplicationDto updated = service.partialUpdate(applicationId, updates);
         return ResponseEntity.ok(new Response<>(200, updated, "신청 부분 수정 완료"));
@@ -86,7 +86,7 @@ public class ApplicationController {
     @GetMapping(ApiPath.CLUB_APPLICATIONS)
     public ResponseEntity<Response<List<ApplicationDto>>> findByClubId(@PathVariable String clubId) {
         List<ApplicationDto> list = service.findByClubId(clubId);
-        return ResponseEntity.ok(new Response<>(200, list, "클럽별 신청자 목록 조회 성공"));
+        return ResponseEntity.ok(new Response<>(200, list, "클럽별 신청 목록 조회 성공"));
     }
 
     /** 합격/불합격 설정 */
@@ -122,10 +122,10 @@ public class ApplicationController {
     @PatchMapping(ApiPath.APPLICATIONS + "/{applicationId}/additional-offer")
     public ResponseEntity<Response<ApplicationDto>> additional(@PathVariable Long applicationId) {
         ApplicationDto updated = service.additionalOffer(applicationId);
-        return ResponseEntity.ok(new Response<>(200, updated, "추가 합격 통보 완료"));
+        return ResponseEntity.ok(new Response<>(200, updated, "추가 합격 처리 완료"));
     }
 
-    /** 학과별 클럽 목록 (기존 서버 오류 수정) */
+    /** 학과별 클럽 목록 (기존 서버 규격 설정) */
     @GetMapping(ApiPath.DEPARTMENT_CLUBS)
     public ResponseEntity<Response<List<ClubSummary>>> findByDept(
             @PathVariable("departmentId") String departmentId

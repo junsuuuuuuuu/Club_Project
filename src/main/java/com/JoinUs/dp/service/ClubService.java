@@ -158,6 +158,12 @@ public class ClubService {
         return processClubList(clubs);
     }
 
+    // 6-1. filter by department prefix (partial match)
+    public List<ClubListResponse> findByDepartmentPrefix(String department) {
+        List<Club> clubs = clubRepository.findByDepartmentStartingWithIgnoreCase(department);
+        return processClubList(clubs);
+    }
+
     // 7. upload club image (file upload)
     @Transactional
     public Long uploadClubImage(String clubId, MultipartFile file) {

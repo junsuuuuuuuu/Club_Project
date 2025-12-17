@@ -12,4 +12,6 @@ public interface InterviewRepository extends JpaRepository<Interview, Long> {
     List<Interview> findByClubId(String clubId);
 
     List<Interview> findByUserId(Long userId);
+
+    boolean existsByApplicationIdAndClubIdAndUserId(Long applicationId, String clubId, Long userId);
 }
