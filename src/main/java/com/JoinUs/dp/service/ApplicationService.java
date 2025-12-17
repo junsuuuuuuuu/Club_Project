@@ -72,24 +72,21 @@ public class ApplicationService {
                 .orElseThrow(() -> new NotFoundException("신청을 찾을 수 없습니다. id=" + dto.getApplicationId()));
 
         e.setMessage(dto.getMessage());
-        e.setStatus(dto.getStatus());
+        // 상태는 합격/불합격/추가합격 전용 API에서만 변경
 
         return toDto(repository.save(e));
     }
 
-    /* 7. 부분수정 (message, status 등) */
+        /* 7. 부분수정(message만) */
     @Transactional
-    public ApplicationDto partialUpdate(Long id, Map<String, Object> updates) {
+    public ApplicationDto partialUpdate(Long id, com.JoinUs.dp.dto.ApplicationPartialUpdateRequest updates) {
         Application e = repository.findById(id)
-                .orElseThrow(() -> new NotFoundException("신청을 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new NotFoundException("지원서를 찾을 수 없습니다. id=" + id));
 
-        if (updates.containsKey("message")) {
-            e.setMessage((String) updates.get("message"));
+        if (updates.getMessage() != null) {
+            e.setMessage(updates.getMessage());
         }
-        if (updates.containsKey("status")) {
-            String status = (String) updates.get("status");
-            e.setStatus(ClubStatus.valueOf(status));
-        }
+        // 상태는 setResult/confirm/additionalOffer에서만 변경
 
         return toDto(repository.save(e));
     }

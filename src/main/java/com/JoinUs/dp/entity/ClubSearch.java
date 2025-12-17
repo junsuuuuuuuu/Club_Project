@@ -6,14 +6,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "clubs") // ??ë³µìˆ˜?•ìœ¼ë¡?ë³€ê²?
+@Table(name = "clubs") // 
 public class ClubSearch {
 
     @Id
-    @Column(name = "club_id") // ???¤ì œ PK ì»¬ëŸ¼ëª??¼ì¹˜
+    @Column(name = "club_id")
     private String clubId;
 
-    @Column(name = "name") // ??ëª…ì‹œ ì¶”ê? (ì¤‘ìš”!)
+    @Column(name = "name") 
     private String name;
 
     @Column(name = "member_count")
