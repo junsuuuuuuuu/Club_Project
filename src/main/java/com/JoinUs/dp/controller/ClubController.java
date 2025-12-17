@@ -2,13 +2,14 @@ package com.JoinUs.dp.controller;
 
 import com.JoinUs.dp.dto.ClubCreateRequest;
 import com.JoinUs.dp.dto.ClubDetailResponse;
+import com.JoinUs.dp.dto.ClubImageRequest;
 import com.JoinUs.dp.dto.ClubListResponse;
 import com.JoinUs.dp.service.ClubService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -51,6 +52,10 @@ public class ClubController {
             result = clubService.findByTypeAndCategory(type, category);
         } else if (type != null && department != null) {
             result = clubService.findByDepartment(department);
+        } else if (category != null) {
+            result = clubService.findByCategory(category);
+        } else if (department != null) {
+            result = clubService.findByDepartment(department);
         } else if (type != null) {
             result = clubService.findByType(type);
         } else {
@@ -63,12 +68,12 @@ public class ClubController {
     // =====================================
     // 4. 이미지 업로드 (multipart)
     // =====================================
-    @PostMapping("/{clubId}/image")
+    @PostMapping(value = "/{clubId}/image", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Long> uploadImage(
             @PathVariable String clubId,
-            @RequestParam MultipartFile file
+            @RequestBody ClubImageRequest request
     ) {
-        Long imageId = clubService.uploadClubImage(clubId, file);
+        Long imageId = clubService.saveClubImageUrl(clubId, request.getImageUrl());
         return ResponseEntity.ok(imageId);
     }
 

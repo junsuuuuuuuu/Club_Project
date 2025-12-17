@@ -4,9 +4,7 @@ import com.JoinUs.dp.common.response.Response;
 import com.JoinUs.dp.dto.WishlistResponse;
 import com.JoinUs.dp.global.common.api.ApiPath;
 import com.JoinUs.dp.service.WishlistService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,35 +38,52 @@ public class WishlistController {
         return ResponseEntity.ok(new Response<>(200, null, "찜 삭제 완료"));
     }
 
-    /** 전체 조회 + 타입 필터 */
+    /** 전체 조회 + 타입 필터(optional) */
     @GetMapping(ApiPath.WISHLIST)
     public ResponseEntity<Response<List<WishlistResponse>>> getWishlist(
             @RequestParam Long userId,
             @RequestParam(required = false) String type
     ) {
         List<WishlistResponse> list = wishlistService.getWishlist(userId, type);
-        return ResponseEntity.ok(new Response<>(200, list, "찜 목록 조회 성공"));
+        return ResponseEntity.ok(new Response<>(200, list, "위시리스트 조회 성공"));
+    }
+
+    /** 찜한 일반 동아리 전체 조회 (type=general) */
+    @GetMapping(ApiPath.WISHLIST + "/general")
+    public ResponseEntity<Response<List<WishlistResponse>>> getGeneralWishlists(
+            @RequestParam("userId") Long userId
+    ) {
+        List<WishlistResponse> list = wishlistService.getWishlist(userId, "general");
+        return ResponseEntity.ok(new Response<>(200, list, "일반 동아리 위시리스트 조회 성공"));
+    }
+
+    /** 찜한 전공 동아리 전체 조회 (type=major) */
+    @GetMapping(ApiPath.WISHLIST + "/major")
+    public ResponseEntity<Response<List<WishlistResponse>>> getMajorWishlists(
+            @RequestParam("userId") Long userId
+    ) {
+        List<WishlistResponse> list = wishlistService.getWishlist(userId, "major");
+        return ResponseEntity.ok(new Response<>(200, list, "전공 동아리 위시리스트 조회 성공"));
     }
 
     /** 일반동아리 카테고리별 */
     @GetMapping(ApiPath.WISHLIST_GENERAL_CATEGORY)
     public ResponseEntity<Response<List<WishlistResponse>>> getGeneralByCategory(
             @RequestParam("userId") Long userId,
-            @PathVariable("category") String category  // ✅ 여기에도 명시
+            @PathVariable("category") String category
     ) {
         List<WishlistResponse> list = wishlistService.getGeneralByCategory(userId, category);
-        return ResponseEntity.ok(new Response<>(200, list, "일반동아리 카테고리별 찜 목록 조회 성공"));
+        return ResponseEntity.ok(new Response<>(200, list, "일반 동아리 카테고리별 위시리스트 조회 성공"));
     }
-
 
     /** 전공동아리 학과별 */
     @GetMapping(ApiPath.WISHLIST_MAJOR_DEPARTMENT)
     public ResponseEntity<Response<List<WishlistResponse>>> getMajorByDept(
             @RequestParam("userId") Long userId,
-            @PathVariable("department") String department  // ✅ 명시적 바인딩
+            @PathVariable("department") String department
     ) {
         List<WishlistResponse> list = wishlistService.getMajorByDepartment(userId, department);
-        return ResponseEntity.ok(new Response<>(200, list, "전공동아리 학과별 찜 목록 조회 성공"));
+        return ResponseEntity.ok(new Response<>(200, list, "전공 동아리 학과별 위시리스트 조회 성공"));
     }
 
 }

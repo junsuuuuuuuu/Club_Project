@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.JoinUs.dp.common.response.Response;
 import com.JoinUs.dp.dto.ApplicationDto;
+import com.JoinUs.dp.dto.ApplicationPartialUpdateRequest;
 import com.JoinUs.dp.dto.ClubSummary;
 import com.JoinUs.dp.global.common.api.ApiPath;
 import com.JoinUs.dp.service.ApplicationService;
@@ -75,7 +76,7 @@ public class ApplicationController {
     @PatchMapping(ApiPath.APPLICATIONS + "/{applicationId}")
     public ResponseEntity<Response<ApplicationDto>> partialUpdate(
             @PathVariable Long applicationId,
-            @RequestBody Map<String, Object> updates) {
+            @RequestBody com.JoinUs.dp.dto.ApplicationPartialUpdateRequest updates) {
 
         ApplicationDto updated = service.partialUpdate(applicationId, updates);
         return ResponseEntity.ok(new Response<>(200, updated, "신청 부분 수정 완료"));

@@ -22,4 +22,6 @@ public interface ClubRepository extends JpaRepository<Club, String> {
 
     // 💡 추가됨: ClubService의 findByDepartment(String department)를 지원
     List<Club> findByDepartment(String department);
+
+    List<Club> findByCategory(String category);
 }
