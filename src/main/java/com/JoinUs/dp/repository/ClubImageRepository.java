@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ClubImageRepository extends JpaRepository<ClubImage, Long> {
-    List<ClubImage> findByClub_ClubId(Long clubId);
+    List<ClubImage> findByClub_ClubId(String clubId);
 }

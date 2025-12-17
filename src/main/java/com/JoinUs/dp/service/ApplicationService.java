@@ -24,7 +24,7 @@ public class ApplicationService {
     private final ApplicationRepository repository;
     private final ClubRepository clubRepository;
 
-    /* 1. 신청 생성 */
+    /* 1. 신청 작성 */
     @Transactional
     public ApplicationDto apply(ApplicationDto dto) {
         Application e = toEntity(dto);
@@ -40,7 +40,7 @@ public class ApplicationService {
                 .collect(Collectors.toList());
     }
 
-    /* 3. userId로 조회 (마이페이지용) */
+    /* 3. userId별 조회 (마이페이지용) */
     @Transactional(readOnly = true)
     public List<ApplicationDto> findByUserId(Long userId) {
         return repository.findByUserId(userId).stream()
@@ -77,7 +77,7 @@ public class ApplicationService {
         return toDto(repository.save(e));
     }
 
-    /* 7. 부분 수정 (message, status 등) */
+    /* 7. 부분수정 (message, status 등) */
     @Transactional
     public ApplicationDto partialUpdate(Long id, Map<String, Object> updates) {
         Application e = repository.findById(id)
@@ -94,34 +94,36 @@ public class ApplicationService {
         return toDto(repository.save(e));
     }
 
-    /* 8. 클럽별 신청 목록 조회 */
+    /* 8. 동아리별 신청 목록 조회 */
     @Transactional(readOnly = true)
     public List<ApplicationDto> findByClubId(String clubId) {
-        Long id = parseClubId(clubId);
-        return repository.findByClubId(id).stream()
+        if (clubId == null) {
+            throw new BadRequestException("clubId가 필요합니다.");
+        }
+        return repository.findByClubId(clubId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
-    /* 9. 합격/불합격 설정 */
+    /* 9. 합격/불합격 결정 */
     @Transactional
     public ApplicationDto setResult(Long id, String result, String message) {
         Application e = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("신청을 찾을 수 없습니다. id=" + id));
 
         if ("passed".equalsIgnoreCase(result)) {
-            e.setStatus(ClubStatus.PASSED);   // ✅ enum에 있는 값만 사용
+            e.setStatus(ClubStatus.PASSED);   // enum에 있는 값만 사용
         } else if ("failed".equalsIgnoreCase(result)) {
             e.setStatus(ClubStatus.FAILED);
         } else {
-            throw new BadRequestException("result 값은 passed 또는 failed 이어야 합니다.");
+            throw new BadRequestException("result 값이 passed 또는 failed 이어야 합니다.");
         }
 
         e.setMessage(message);
         return toDto(repository.save(e));
     }
 
-    /* 10. 확정/철회 (예: CONFIRMED / DECLINED) */
+    /* 10. 확정/철회 (즉 CONFIRMED / DECLINED) */
     @Transactional
     public ApplicationDto confirmOrDecline(Long id, String action) {
         Application e = repository.findById(id)
@@ -132,32 +134,32 @@ public class ApplicationService {
         } else if ("decline".equalsIgnoreCase(action)) {
             e.setStatus(ClubStatus.DECLINED);
         } else {
-            throw new BadRequestException("action 값은 confirm 또는 decline 이어야 합니다.");
+            throw new BadRequestException("action 값이 confirm 또는 decline 이어야 합니다.");
         }
         return toDto(repository.save(e));
     }
 
-    /* 11. 추가 합격 → 내부적으로도 그냥 PASSED로 처리 */
+    /* 11. 추가 합격 제안(요청이 와도 그냥 PASSED로 처리) */
     @Transactional
     public ApplicationDto additionalOffer(Long id) {
         Application e = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("신청을 찾을 수 없습니다. id=" + id));
 
-        e.setStatus(ClubStatus.PASSED);   // ✅ ADDITIONAL_PASSED 대신 PASSED로 통일
+        e.setStatus(ClubStatus.PASSED);   // 추가 합격도 PASSED로 통일
         return toDto(repository.save(e));
     }
 
-    /* 12. 학과별 클럽 목록 */
+    /* 12. 학과별 동아리 목록 */
     @Transactional(readOnly = true)
     public List<ClubSummary> getClubsByDepartment(String departmentId) {
-        // departmentId를 그대로 department로 사용
+        // departmentId가 곧 department로 사용
         List<Club> clubs = clubRepository.findByDepartment(departmentId);
         return clubs.stream()
-                .map(c -> new ClubSummary(String.valueOf(c.getClubId()), c.getName()))
+                .map(c -> new ClubSummary(c.getClubId(), c.getName()))
                 .collect(Collectors.toList());
     }
 
-    // ================= 내부 매핑 =================
+    // ================= 변환 메서드 =================
 
     private ApplicationDto toDto(Application e) {
         return ApplicationDto.from(e);
@@ -167,20 +169,9 @@ public class ApplicationService {
         Application e = new Application();
         e.setId(dto.getApplicationId());
         e.setUserId(dto.getUserId());
-        e.setClubId(parseClubId(dto.getClubId()));
+        e.setClubId(dto.getClubId());
         e.setStatus(dto.getStatus());
         e.setMessage(dto.getMessage());
         return e;
-    }
-
-    private Long parseClubId(String clubId) {
-        if (clubId == null) {
-            throw new BadRequestException("clubId는 필수입니다.");
-        }
-        try {
-            return Long.parseLong(clubId);
-        } catch (NumberFormatException e) {
-            throw new BadRequestException("clubId 형식이 올바르지 않습니다.");
-        }
     }
 }

@@ -22,7 +22,7 @@ public class Interview {
     private Long applicationId;
 
     @Column(name = "club_id", nullable = false)
-    private Long clubId;
+    private String clubId;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

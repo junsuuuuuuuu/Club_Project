@@ -29,6 +29,6 @@ public class NoticeResponse {
     public Notice.Type getType() { return type; }
 
     public static NoticeResponse from(Notice n) {
-        return new NoticeResponse(n.getId(), String.valueOf(n.getClubId()), n.getTitle(), n.getContent(), n.getCreatedAt(), n.getType());
+        return new NoticeResponse(n.getId(), n.getClubId(), n.getTitle(), n.getContent(), n.getCreatedAt(), n.getType());
     }
 }

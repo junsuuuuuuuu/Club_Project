@@ -12,9 +12,9 @@ import com.JoinUs.dp.entity.Wishlist;
 public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
 
     // 단일 찜 여부 확인
-    Optional<Wishlist> findByUserIdAndClubClubId(Long userId, Long clubId);
+    Optional<Wishlist> findByUserIdAndClubClubId(Long userId, String clubId);
 
-    boolean existsByUserIdAndClubClubId(Long userId, Long clubId);
+    boolean existsByUserIdAndClubClubId(Long userId, String clubId);
 
     // 전체 조회 + 타입 필터링 (type이 null이면 전체)
     @Query("""

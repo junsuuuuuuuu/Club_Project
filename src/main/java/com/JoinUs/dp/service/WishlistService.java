@@ -25,22 +25,22 @@ public class WishlistService {
 
     /** 찜추가 */
     public WishlistResponse addWishlist(Long userId, String clubId) {
-        Long parsedClubId = parseClubId(clubId);
+        String normalizedClubId = normalizeClubId(clubId);
 
-        if (wishlistRepository.existsByUserIdAndClubClubId(userId, parsedClubId)) {
-            throw new ConflictException("이미 찜한 클럽입니다.");
+        if (wishlistRepository.existsByUserIdAndClubClubId(userId, normalizedClubId)) {
+            throw new ConflictException("이미 찜한 동아리입니다.");
         }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        Club club = clubRepository.findById(parsedClubId)
-                .orElseThrow(() -> new NotFoundException("클럽을 찾을 수 없습니다."));
+        Club club = clubRepository.findById(normalizedClubId)
+                .orElseThrow(() -> new NotFoundException("동아리를 찾을 수 없습니다."));
 
         Wishlist wish = new Wishlist(user, club);
         wishlistRepository.save(wish);
 
         return new WishlistResponse(
-                String.valueOf(club.getClubId()),
+                club.getClubId(),
                 club.getName(),
                 club.getType(),
                 club.getCategory(),
@@ -50,19 +50,19 @@ public class WishlistService {
 
     /** 찜삭제 */
     public void deleteWishlist(Long userId, String clubId) {
-        Long parsedClubId = parseClubId(clubId);
-        Wishlist wish = wishlistRepository.findByUserIdAndClubClubId(userId, parsedClubId)
-                .orElseThrow(() -> new NotFoundException("찜한 내역을 찾을 수 없습니다."));
+        String normalizedClubId = normalizeClubId(clubId);
+        Wishlist wish = wishlistRepository.findByUserIdAndClubClubId(userId, normalizedClubId)
+                .orElseThrow(() -> new NotFoundException("찜한 이력이 없습니다."));
 
         wishlistRepository.delete(wish);
     }
 
-    /** 내 찜목록 조회 (type 필터 optional) */
+    /** 전체찜목록조회 (type 필터 optional) */
     public List<WishlistResponse> getWishlist(Long userId, String type) {
 
         return wishlistRepository.findByUserIdAndClubType(userId, type).stream()
                 .map(w -> new WishlistResponse(
-                        String.valueOf(w.getClub().getClubId()),
+                        w.getClub().getClubId(),
                         w.getClub().getName(),
                         w.getClub().getType(),
                         w.getClub().getCategory(),
@@ -71,12 +71,12 @@ public class WishlistService {
                 .toList();
     }
 
-    /** 일반동아리 카테고리별 */
+    /** 일반동아리카테고리별 */
     public List<WishlistResponse> getGeneralByCategory(Long userId, String category) {
 
         return wishlistRepository.findGeneralByUserIdAndCategory(userId, category).stream()
                 .map(w -> new WishlistResponse(
-                        String.valueOf(w.getClub().getClubId()),
+                        w.getClub().getClubId(),
                         w.getClub().getName(),
                         w.getClub().getType(),
                         w.getClub().getCategory(),
@@ -85,12 +85,12 @@ public class WishlistService {
                 .toList();
     }
 
-    /** 전공동아리 학과별 */
+    /** 전공동아리학과별 */
     public List<WishlistResponse> getMajorByDepartment(Long userId, String department) {
 
         return wishlistRepository.findMajorByUserIdAndDepartment(userId, department).stream()
                 .map(w -> new WishlistResponse(
-                        String.valueOf(w.getClub().getClubId()),
+                        w.getClub().getClubId(),
                         w.getClub().getName(),
                         w.getClub().getType(),
                         w.getClub().getCategory(),
@@ -99,18 +99,17 @@ public class WishlistService {
                 .toList();
     }
 
-    private Long parseClubId(String clubId) {
+    private String normalizeClubId(String clubId) {
         if (clubId == null) {
-            throw new BadRequestException("clubId는 필수입니다.");
+            throw new BadRequestException("clubId가 필요합니다.");
         }
         String trimmed = clubId.trim();
         if (trimmed.toLowerCase().startsWith("sg")) {
             trimmed = trimmed.substring(2);
         }
-        try {
-            return Long.parseLong(trimmed);
-        } catch (NumberFormatException e) {
-            throw new BadRequestException("clubId 형식이 올바르지 않습니다.");
+        if (trimmed.isEmpty()) {
+            throw new BadRequestException("clubId가 비어 있습니다.");
         }
+        return trimmed;
     }
 }

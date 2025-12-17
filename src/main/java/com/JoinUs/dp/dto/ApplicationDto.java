@@ -23,7 +23,7 @@ public class ApplicationDto {
         return new ApplicationDto(
                 e.getId(),
                 e.getUserId(),
-                String.valueOf(e.getClubId()),
+                e.getClubId(),
                 e.getStatus(),
                 e.getMessage(),
                 e.getCreatedAt()

@@ -20,7 +20,7 @@ public class InterviewService {
     public InterviewResponse create(InterviewRequest req) {
         Interview i = new Interview();
         i.setApplicationId(req.getApplicationId());
-        i.setClubId(parseClubId(req.getClubId()));
+        i.setClubId(req.getClubId());
         i.setUserId(req.getUserId());
         i.setSchedule(req.getSchedule());
         i.setLocation(req.getLocation());
@@ -55,7 +55,7 @@ public class InterviewService {
     }
 
     /** 동아리별 조회 */
-    public List<InterviewResponse> getByClub(Long clubId) {
+    public List<InterviewResponse> getByClub(String clubId) {
         return interviewRepository.findByClubId(clubId)
                 .stream().map(InterviewResponse::from).toList();
     }
@@ -78,14 +78,4 @@ public class InterviewService {
         return InterviewResponse.from(i);
     }
 
-    private Long parseClubId(String clubId) {
-        if (clubId == null) {
-            throw new RuntimeException("clubId is required");
-        }
-        try {
-            return Long.parseLong(clubId);
-        } catch (NumberFormatException e) {
-            throw new RuntimeException("clubId must be numeric");
-        }
-    }
 }

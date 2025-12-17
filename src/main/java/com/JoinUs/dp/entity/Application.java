@@ -23,7 +23,7 @@ public class Application {
     private Long userId;
 
     @Column(name = "club_id", nullable = false)
-    private Long clubId;
+    private String clubId;
 
     @Enumerated(EnumType.STRING)
     private ClubStatus status = ClubStatus.PENDING;   // 통합된 상태

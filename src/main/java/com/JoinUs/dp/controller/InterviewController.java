@@ -56,7 +56,7 @@ public class InterviewController {
 
     /** 동아리별 조회 */
     @GetMapping("/api/clubs/{clubId}/interviews")
-    public ResponseEntity<Response<List<InterviewResponse>>> byClub(@PathVariable Long clubId) {
+    public ResponseEntity<Response<List<InterviewResponse>>> byClub(@PathVariable String clubId) {
         return ResponseEntity.ok(
                 new Response<>(200, interviewService.getByClub(clubId), "동아리 기준 면접 조회 완료")
         );

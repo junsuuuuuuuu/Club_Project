@@ -38,7 +38,7 @@ public class ClubAdminService {
 
     /** ✅ 동아리 승인 처리 */
     @Transactional
-    public boolean approveClub(Long clubId) {
+    public boolean approveClub(String clubId) {
         return clubRepository.findById(clubId)
                 .map(club -> {
                     if (!"approved".equals(club.getStatus())) {

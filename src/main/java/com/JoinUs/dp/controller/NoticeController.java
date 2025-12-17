@@ -37,7 +37,7 @@ public class NoticeController {
 
     // 특정 동아리 공지 조회
     @GetMapping("/api/clubs/{clubId}/notice")
-    public ResponseEntity<Response<List<Notice>>> getClubNotices(@PathVariable Long clubId) {
+    public ResponseEntity<Response<List<Notice>>> getClubNotices(@PathVariable String clubId) {
         List<Notice> list = noticeService.getClubNotices(clubId);
         return ResponseEntity.ok(
                 new Response<>(HttpStatus.OK.value(), list, "동아리 공지 목록 조회 성공")
@@ -47,7 +47,7 @@ public class NoticeController {
     // 클럽 공지 작성
     @PostMapping("/api/clubs/{clubId}/notice")
     public ResponseEntity<Response<Notice>> createClubNotice(
-            @PathVariable Long clubId,
+            @PathVariable String clubId,
             @RequestBody Notice req
     ) {
         Notice saved = noticeService.createClubNotice(clubId, req.getTitle(), req.getContent());

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.JoinUs.dp.entity.ClubSearch;
 
-public interface ClubSearchRepository extends JpaRepository<ClubSearch, Long> {
+public interface ClubSearchRepository extends JpaRepository<ClubSearch, String> {
 
     List<ClubSearch> findByNameContainingIgnoreCase(String name);
     List<ClubSearch> findByNameContainingIgnoreCaseAndMemberCountGreaterThanEqual(String name, Integer memberCount);

@@ -23,7 +23,7 @@ public class Notice {
     private Long id;
 
     @Column(name = "club_id")
-    private Long clubId;
+    private String clubId;
 
     @Column(nullable = false)
     private String title;
@@ -38,7 +38,7 @@ public class Notice {
     @Column(nullable = false)
     private Type type;
 
-    public Notice(Long clubId, String title, String content, Type type) {
+    public Notice(String clubId, String title, String content, Type type) {
         this.clubId = clubId;
         this.title = title;
         this.content = content;

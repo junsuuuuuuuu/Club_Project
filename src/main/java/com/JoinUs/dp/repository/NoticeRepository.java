@@ -12,5 +12,5 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
     List<Notice> findByTypeOrderByCreatedAtDesc(Type type);
 
     // 특정 클럽 공지 조회
-    List<Notice> findByClubIdOrderByCreatedAtDesc(Long clubId);
+    List<Notice> findByClubIdOrderByCreatedAtDesc(String clubId);
 }

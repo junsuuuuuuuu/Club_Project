@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import com.JoinUs.dp.entity.Club;
 
 @Repository
-public interface ClubRepository extends JpaRepository<Club, Long> {
+public interface ClubRepository extends JpaRepository<Club, String> {
 
     // type(major/general)으로 동아리 필터링
     List<Club> findByType(String type);

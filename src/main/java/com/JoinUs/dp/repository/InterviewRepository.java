@@ -9,7 +9,7 @@ public interface InterviewRepository extends JpaRepository<Interview, Long> {
 
     List<Interview> findByApplicationId(Long applicationId);
 
-    List<Interview> findByClubId(Long clubId);
+    List<Interview> findByClubId(String clubId);
 
     List<Interview> findByUserId(Long userId);
 }

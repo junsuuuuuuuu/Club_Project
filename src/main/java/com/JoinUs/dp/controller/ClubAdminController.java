@@ -42,7 +42,7 @@ public class ClubAdminController {
 
     /** ✅ 동아리 승인 */
     @PatchMapping("/clubs/{clubId}/approve")
-    public boolean approveClub(@PathVariable Long clubId) {
+    public boolean approveClub(@PathVariable String clubId) {
         return clubAdminService.approveClub(clubId);
     }
 }

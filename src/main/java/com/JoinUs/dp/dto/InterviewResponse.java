@@ -28,7 +28,7 @@ public class InterviewResponse {
         return new InterviewResponse(
                 i.getId(),
                 i.getApplicationId(),
-                String.valueOf(i.getClubId()),
+                i.getClubId(),
                 i.getUserId(),
                 i.getSchedule(),
                 i.getLocation(),

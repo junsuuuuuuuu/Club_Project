@@ -23,17 +23,17 @@ public class ClubQuestionController {
     private final ClubQuestionService clubQuestionService;
     private final ClubSearchRepository clubSearchRepository;
 
-    /** 지원 질문 목록 조회
-     *  → 클럽이 설정한 질문 리스트 + (임시) 최대 글자 수
+    /** 질문 목록 조회
+     *  - 해당 동아리 설정된 질문 리스트 + (예시) 최신글?까지
      */
     @GetMapping
     public List<QuestionResponse> getQuestions(@PathVariable String clubId) {
-        ClubSearch club = clubSearchRepository.findById(parseClubId(clubId))
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+        ClubSearch club = clubSearchRepository.findById(normalizeClubId(clubId))
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         List<ClubQuestion> questions = clubQuestionService.getQuestionsByClub(club);
 
-        // maxLength는 아직 DB에 없어서 일단 1000자로 고정 (필요하면 엔티티/컬럼 추가해서 변경)
+        // maxLength는 직접 DB에선 없으니 일단 1000으로 고정 (필요하면 포컬럼 추가)
         return questions.stream()
                 .map(q -> new QuestionResponse(
                         q.getQid(),
@@ -43,11 +43,11 @@ public class ClubQuestionController {
                 .collect(Collectors.toList());
     }
 
-    /** 질문 + 답변 목록 조회 (새 엔드포인트) */
+    /** 질문 + 답변 목록 조회 (프런트 로그인용) */
     @GetMapping("/answers")
     public List<AnsweredQuestionResponse> getQuestionsWithAnswers(@PathVariable String clubId) {
-        ClubSearch club = clubSearchRepository.findById(parseClubId(clubId))
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+        ClubSearch club = clubSearchRepository.findById(normalizeClubId(clubId))
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         return clubQuestionService.getQuestionsByClub(club).stream()
                 .map(q -> new AnsweredQuestionResponse(
@@ -64,14 +64,14 @@ public class ClubQuestionController {
             @PathVariable String clubId,
             @RequestBody QuestionCreateRequest req
     ) {
-        ClubSearch club = clubSearchRepository.findById(parseClubId(clubId))
-                .orElseThrow(() -> new NotFoundException("해당 clubId는 존재하지 않습니다."));
+        ClubSearch club = clubSearchRepository.findById(normalizeClubId(clubId))
+                .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
         ClubQuestion saved = clubQuestionService.addQuestion(club, req.getQuestion());
         return new QuestionResponse(saved.getQid(), saved.getQuestion(), 1000);
     }
 
-    /** 답변 등록/수정 – 지금 구조상 Q&A 성격이라 남겨둠 */
+    /** 답변 등록/수정 등지용(정책마다 다르게 처리) */
     @PutMapping("/{questionId}/answer")
     public ClubQuestion updateAnswer(
             @PathVariable Long questionId,
@@ -80,7 +80,7 @@ public class ClubQuestionController {
         return clubQuestionService.updateAnswer(questionId, req.getAnswer());
     }
 
-    /** 질문 소프트 삭제 */
+    /** 질문 소프트삭제 */
     @DeleteMapping("/{questionId}")
     public void softDeleteQuestion(@PathVariable Long questionId) {
         clubQuestionService.softDeleteQuestion(questionId);
@@ -102,16 +102,15 @@ public class ClubQuestionController {
         private String answer;
     }
 
-    private Long parseClubId(String clubId) {
-        if (clubId == null) throw new NotFoundException("clubId는 필수입니다.");
+    private String normalizeClubId(String clubId) {
+        if (clubId == null) throw new NotFoundException("clubId가 필요합니다.");
         String trimmed = clubId.trim();
         if (trimmed.toLowerCase().startsWith("sg")) {
             trimmed = trimmed.substring(2);
         }
-        try {
-            return Long.parseLong(trimmed);
-        } catch (NumberFormatException e) {
+        if (trimmed.isEmpty()) {
             throw new NotFoundException("clubId 형식이 올바르지 않습니다.");
         }
+        return trimmed;
     }
 }

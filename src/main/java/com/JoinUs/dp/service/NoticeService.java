@@ -26,12 +26,12 @@ public class NoticeService {
     }
 
     // 특정 클럽 공지 조회
-    public List<Notice> getClubNotices(Long clubId) {
+    public List<Notice> getClubNotices(String clubId) {
         return noticeRepository.findByClubIdOrderByCreatedAtDesc(clubId);
     }
 
     // 클럽 공지 생성
-    public Notice createClubNotice(Long clubId, String title, String content) {
+    public Notice createClubNotice(String clubId, String title, String content) {
         Notice notice = new Notice(clubId, title, content, Type.CLUB_NOTICE);
         return noticeRepository.save(notice);
     }

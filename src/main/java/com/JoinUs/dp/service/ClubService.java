@@ -39,7 +39,7 @@ public class ClubService {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     // 1. 동아리 생성
-    public Long createClub(ClubCreateRequest req) {
+    public String createClub(ClubCreateRequest req) {
 
         if (req.getName() == null || req.getShortDescription() == null ||
                 req.getType() == null || req.getLeaderId() == null) {
@@ -100,12 +100,16 @@ public class ClubService {
             club.setVision(req.getDirection());
         }
 
+        if (club.getClubId() == null || club.getClubId().isBlank()) {
+            club.setClubId(UUID.randomUUID().toString());
+        }
+
         Club saved = clubRepository.save(club);
         return saved.getClubId();
     }
 
     // 2. 단건 동아리 상세 조회
-    public ClubDetailResponse getClubDetail(Long id) {
+    public ClubDetailResponse getClubDetail(String id) {
         Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
@@ -115,7 +119,7 @@ public class ClubService {
                 .collect(Collectors.toList());
 
         return new ClubDetailResponse(
-                String.valueOf(club.getClubId()),
+                club.getClubId(),
                 club.getName(),
                 club.getShortDesc(),
                 club.getDescription(),
@@ -156,7 +160,7 @@ public class ClubService {
     }
 
     // 7. 동아리 이미지 업로드
-    public Long uploadClubImage(Long clubId, MultipartFile file) {
+    public Long uploadClubImage(String clubId, MultipartFile file) {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
@@ -193,7 +197,7 @@ public class ClubService {
     }
 
     // 8. 모집 상태 변경 (기존 API - 어드민 전용)
-    public String updateRecruitStatus(Long id, String status) {
+    public String updateRecruitStatus(String id, String status) {
         Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
@@ -212,7 +216,7 @@ public class ClubService {
     }
 
     // 9. 모집 마감일 설정 (기존 API - 어드민 전용)
-    public String updateDeadline(Long id, String endDate) {
+    public String updateDeadline(String id, String endDate) {
         Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
@@ -222,7 +226,7 @@ public class ClubService {
     }
 
     // 10. 모집 종료 (기존 API - 어드민 전용)
-    public String closeRecruit(Long id) {
+    public String closeRecruit(String id) {
         Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
@@ -234,7 +238,7 @@ public class ClubService {
     }
 
     // 11. 프론트 요청용 API: 모집 상태 + 마감일 동시 변경
-    public void updateRecruitment(Long clubId, Boolean isRecruiting, String recruitDeadline) {
+    public void updateRecruitment(String clubId, Boolean isRecruiting, String recruitDeadline) {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new NotFoundException("해당 clubId가 존재하지 않습니다."));
 
@@ -263,7 +267,10 @@ public class ClubService {
 
     private ClubListResponse toListResponse(Club club) {
         // 1) id: "sg01" 같은 형식 (clubId 기반)
-        String id = "sg" + String.format("%02d", club.getClubId());
+        String rawClubId = club.getClubId();
+        String id = (rawClubId != null && rawClubId.matches("\\d+"))
+                ? "sg" + String.format("%02d", Long.parseLong(rawClubId))
+                : rawClubId;
 
         // 2) adminId: 현재는 임시 고정 값
         //    추후 Users 테이블에서 leaderId 기반 username/email 가져오도록 매핑

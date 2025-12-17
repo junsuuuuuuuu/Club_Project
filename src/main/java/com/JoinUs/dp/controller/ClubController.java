@@ -23,8 +23,8 @@ public class ClubController {
     // 1. 동아리 생성
     // =====================================
     @PostMapping
-    public ResponseEntity<Long> createClub(@RequestBody ClubCreateRequest request) {
-        Long id = clubService.createClub(request);
+    public ResponseEntity<String> createClub(@RequestBody ClubCreateRequest request) {
+        String id = clubService.createClub(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(id);
     }
 
@@ -32,7 +32,7 @@ public class ClubController {
     // 2. 단일 동아리 상세 조회
     // =====================================
     @GetMapping("/{clubId}")
-    public ResponseEntity<ClubDetailResponse> getClub(@PathVariable Long clubId) {
+    public ResponseEntity<ClubDetailResponse> getClub(@PathVariable String clubId) {
         return ResponseEntity.ok(clubService.getClubDetail(clubId));
     }
 
@@ -65,7 +65,7 @@ public class ClubController {
     // =====================================
     @PostMapping("/{clubId}/image")
     public ResponseEntity<Long> uploadImage(
-            @PathVariable Long clubId,
+            @PathVariable String clubId,
             @RequestParam MultipartFile file
     ) {
         Long imageId = clubService.uploadClubImage(clubId, file);
@@ -77,7 +77,7 @@ public class ClubController {
     // =====================================
     @PatchMapping("/{clubId}/recruitment")
     public ResponseEntity<Void> updateRecruitment(
-            @PathVariable Long clubId,
+            @PathVariable String clubId,
             @RequestBody com.JoinUs.dp.dto.RecruitUpdateRequest request
     ) {
         clubService.updateRecruitment(clubId, request.getIsRecruiting(), request.getRecruitDeadline());
